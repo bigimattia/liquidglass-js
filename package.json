@@ -1,0 +1,84 @@
+{
+  "name": "@ikeofficial/liquid-glass-js",
+  "version": "0.2.1",
+  "description": "Refractive, interactive glass surfaces for the web",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./build/core/liquid-glass.d.ts",
+      "default": "./build/core/liquid-glass.js"
+    },
+    "./style.css": "./build/core/liquid-glass.css",
+    "./auto": "./build/core/auto.js",
+    "./angular": {
+      "types": "./build/angular/index.d.ts",
+      "default": "./build/angular/index.js"
+    },
+    "./react": {
+      "types": "./build/react/index.d.ts",
+      "default": "./build/react/index.js"
+    },
+    "./vue": {
+      "types": "./build/vue/index.d.ts",
+      "default": "./build/vue/index.js"
+    }
+  },
+  "types": "./build/core/liquid-glass.d.ts",
+  "files": [
+    "skills/liquid-glass-js",
+    "build"
+  ],
+  "sideEffects": [
+    "**/*.css",
+    "**/auto.js"
+  ],
+  "keywords": [
+    "liquid-glass",
+    "backdrop-filter",
+    "refraction",
+    "vanilla-js"
+  ],
+  "peerDependencies": {
+    "@angular/core": ">=20 <23",
+    "react": "^18.0.0 || ^19.0.0",
+    "vue": "^3.3.0"
+  },
+  "peerDependenciesMeta": {
+    "@angular/core": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@angular/compiler": "20.3.35",
+    "@angular/compiler-cli": "20.3.35",
+    "@angular/core": "20.3.35",
+    "@angular/platform-browser": "20.3.35",
+    "@types/react": "19.3.0",
+    "esbuild": "^0.28.2",
+    "jsdom": "29.1.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "rxjs": "7.8.2",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3",
+    "vue": "3.5.45"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
+  "scripts": {
+    "prepack": "mise run build"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bigimattia/liquidglass-js.git"
+  }
+}

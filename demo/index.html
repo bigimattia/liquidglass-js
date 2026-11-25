@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f0f2ed">
+  <title>Liquid Glass JS · Optics Playground</title>
+  <link rel="stylesheet" href="../src/liquid-glass.css">
+  <link rel="stylesheet" href="./demo.css">
+  <link rel="stylesheet" href="./control-utilities.css">
+  <script type="module" src="./demo.js"></script>
+</head>
+<body liquid-glass-scene="page">
+  <div class="file-warning" id="file-warning" hidden role="alert">
+    Some browsers block glass effects when opening a local file. Run <code>mise run dev</code>, then open
+    <a href="http://127.0.0.1:4173/demo/">the local playground</a>.
+  </div>
+  <script>if (location.protocol === "file:") document.getElementById("file-warning").hidden = false;</script>
+  <header class="topbar wrap" id="topbar" liquid-glass="page">
+    <a class="wordmark" href="#top"><span class="mark" aria-hidden="true"></span> Liquid Glass JS</a>
+    <nav aria-label="On this page">
+      <span id="topbar-renderer" class="topbar-status" aria-live="polite"></span>
+      <a href="#playground">Playground</a>
+      <a href="#controls">Controls</a>
+      <a href="#usage">Usage <span aria-hidden="true">↗</span></a>
+    </nav>
+  </header>
+
+  <main class="wrap" id="top">
+    <section class="intro">
+      <h1>Liquid glass, <em>in focus.</em></h1>
+      <p>Make an ordinary element refract light. Tune the optics and compare element, backdrop, and frosted glass.</p>
+    </section>
+
+    <section class="workbench" id="playground" aria-label="Optics playground">
+      <div class="viewer">
+        <div class="viewer-bar">
+          <fieldset class="segmented" aria-label="Scene" id="scenes">
+            <legend class="visually-hidden">Scene</legend>
+            <label><input type="radio" name="scene" value="photo" checked><span>Photo</span></label>
+            <label><input type="radio" name="scene" value="grid"><span>Grid</span></label>
+            <label><input type="radio" name="scene" value="type"><span>Type</span></label>
+          </fieldset>
+          <span class="renderer" id="renderer" aria-live="polite"></span>
+        </div>
+        <div class="stage" id="stage" data-scene="photo">
+          <img id="photo" class="scene-art" src="./shore.jpg" alt="">
+          <img id="grid" class="scene-art" src="./grid.svg" alt="">
+          <img id="type" class="scene-art" src="./type.svg" alt="">
+          <div class="lens-frame" id="lens-frame">
+            <button type="button" class="lens" id="item" aria-label="Move lens" aria-describedby="move-help">
+            </button>
+            <span class="lens-label" aria-hidden="true">✦ &nbsp;Move lens</span>
+          </div>
+        </div>
+        <p class="viewer-note" id="move-help">Drag the lens or use the arrow keys when it’s focused. <button class="quiet" type="button" id="test-header">Test header over grid</button></p>
+      </div>
+
+      <div class="inspector">
+        <div class="panel-header">
+          <h2>Optics</h2>
+          <button class="quiet" id="reset" type="button">Reset</button>
+        </div>
+        <label class="select-row" for="mode">Renderer</label>
+        <select id="mode">
+          <option value="auto" selected>Automatic</option>
+          <option value="content">Element content</option>
+          <option value="sampled">Image backdrop</option>
+          <option value="backdrop">Live page backdrop</option>
+          <option value="frost">Frosted glass</option>
+        </select>
+        <p class="renderer-note" id="renderer-note" hidden>The selected backdrop is unavailable. Showing frosted glass.</p>
+        <fieldset class="segmented presets" aria-label="Preset" id="presets">
+          <legend class="visually-hidden">Preset</legend>
+          <label><input type="radio" name="preset" value="clear" checked><span>Clear</span></label>
+          <label><input type="radio" name="preset" value="frost"><span>Frost</span></label>
+          <label><input type="radio" name="preset" value="prism"><span>Prism</span></label>
+        </fieldset>
+        <div class="slider-grid" id="sliders"></div>
+        <div class="toggle-row">
+          <label><input id="enabled" type="checkbox" checked> Glass on</label>
+          <label><input id="interactive" type="checkbox" checked> Pointer light</label>
+          <label><input id="header-scene" type="checkbox" checked> Header scene copy</label>
+        </div>
+        <p class="renderer-note">The header copies the page below it when scene copy is enabled. Scroll to compare; turn it off to follow the selected renderer.</p>
+      </div>
+    </section>
+
+    <section class="samples" id="controls" aria-labelledby="samples-title">
+      <h2 id="samples-title">Glass on native controls</h2>
+      <div class="control-showcase">
+        <div class="control-showcase-bar">
+          <fieldset class="segmented" id="control-selector">
+            <legend class="visually-hidden">Control preview</legend>
+            <label><input type="radio" name="control" value="action" checked><span>Button</span></label>
+            <label><input type="radio" name="control" value="switch"><span>Switch</span></label>
+            <label><input type="radio" name="control" value="slider"><span>Slider</span></label>
+            <label><input type="radio" name="control" value="segmented"><span>Segmented</span></label>
+            <label><input type="radio" name="control" value="media"><span>Media</span></label>
+          </fieldset>
+        </div>
+        <div class="native-stage" id="control-preview" data-control="action"></div>
+        <div class="code-toolbar control-code-bar">
+          <fieldset class="segmented" id="control-code-selector">
+            <legend class="visually-hidden">Control source language</legend>
+            <label><input type="radio" name="control-code" value="html" checked><span>HTML</span></label>
+            <label><input type="radio" name="control-code" value="js"><span>JavaScript</span></label>
+            <label><input type="radio" name="control-code" value="angular"><span>Angular</span></label>
+            <label><input type="radio" name="control-code" value="vue"><span>Vue</span></label>
+            <label><input type="radio" name="control-code" value="react"><span>React</span></label>
+          </fieldset>
+          <button class="quiet" id="copy-control" type="button">Copy</button>
+        </div>
+        <pre class="control-source" tabindex="0" aria-label="Selected control source"><code id="control-code"></code></pre>
+      </div>
+    </section>
+
+    <article class="live-dom" id="live-dom">
+      <h3>Live HTML</h3>
+      <p>Select this text, then <a href="#usage">open the integration examples</a>.</p>
+    </article>
+
+    <section class="usage" id="usage" aria-labelledby="usage-title">
+      <div class="usage-intro">
+        <h2 id="usage-title">One core. Four entry points.</h2>
+        <p>Use the same options in plain JavaScript or bind them to your framework’s lifecycle.</p>
+      </div>
+      <div class="code-panel">
+        <div class="code-toolbar">
+          <fieldset class="segmented" id="frameworks" aria-label="Example language">
+            <legend class="visually-hidden">Example language</legend>
+            <label><input type="radio" name="framework" value="js" checked><span>JavaScript</span></label>
+            <label><input type="radio" name="framework" value="angular"><span>Angular</span></label>
+            <label><input type="radio" name="framework" value="react"><span>React</span></label>
+            <label><input type="radio" name="framework" value="vue"><span>Vue</span></label>
+          </fieldset>
+          <button class="quiet" id="copy" type="button">Copy</button>
+        </div>
+        <pre tabindex="0"><code id="example"></code></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap footer">
+    <span>Liquid Glass JS</span>
+    <a href="https://aave.com/design/building-glass-for-the-web">Optical reference ↗</a>
+  </footer>
+</body>
+</html>

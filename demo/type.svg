@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" preserveAspectRatio="none">
+  <path fill="#215c53" d="M0 0h900v480H0z"/>
+  <g fill="#87bfa9" font-family="Arial,sans-serif" font-size="108" font-weight="900">
+    <text x="74" y="177" textLength="752" lengthAdjust="spacingAndGlyphs">REFRACTION</text>
+    <text x="74" y="286" textLength="729" lengthAdjust="spacingAndGlyphs">REFLECTION</text>
+    <text x="74" y="395" textLength="704" lengthAdjust="spacingAndGlyphs">DISPERSION</text>
+  </g>
+</svg>
