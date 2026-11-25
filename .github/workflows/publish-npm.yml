@@ -5,7 +5,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   publish:
@@ -13,12 +12,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v2
-      - name: Check npm trusted publishing support
-        run: |
-          mise exec -- node -e 'const v = require("child_process").execFileSync("npm", ["--version"], {encoding: "utf8"}).trim().split(".").map(Number); if (v[0] < 11 || (v[0] === 11 && (v[1] < 5 || (v[1] === 5 && v[2] < 1)))) { throw new Error("npm 11.5.1 or later is required for trusted publishing"); }'
       - name: Install dependencies
         run: mise run install
       - name: Build and check
         run: mise run check
       - name: Publish to npm
-        run: mise exec -- npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-publish.npmrc
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::Set the NPM_TOKEN repository secret to an npm granular access token with publish access."
+            exit 1
+          fi
+          printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' > "$NPM_CONFIG_USERCONFIG"
+          mise exec -- npm publish --access public

@@ -22,7 +22,7 @@ The package includes minified ESM and CSS, TypeScript declarations, and an [agen
 
 ## Publishing
 
-The **Publish to npm** GitHub Actions workflow publishes `@ikeofficial/liquid-glass-js` to npmjs.com. The package must first exist on npm, and its [trusted publisher](https://docs.npmjs.com/trusted-publishers/) must be configured with the GitHub repository owner, repository name, `publish-npm.yml` workflow filename, and permission for `npm publish`. Complete the first successful workflow run within two days of configuring the trusted publisher.
+The **Publish to npm** GitHub Actions workflow publishes `@ikeofficial/liquid-glass-js` to npmjs.com. Add an npm granular access token with permission to publish this package and bypass 2FA as the `NPM_TOKEN` repository secret under GitHub Settings → Secrets and variables → Actions. Do not commit the token. npm plans to remove direct publishing with granular tokens in January 2027; migrate to [trusted publishing](https://docs.npmjs.com/trusted-publishers/) before then.
 
 Update the version in `package.json`, then run **Publish to npm** from the Actions tab. Each published npm version must be new. To build a local archive, run `mise run install` and `mise run pack`.
 
