@@ -1,4 +1,4 @@
-name: Release and publish to npm
+name: Release and stage on npm
 
 on:
   push:
@@ -37,13 +37,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           registry-url: https://registry.npmjs.org/
-      - name: Publish to npm
-        run: npm publish dist/*.tgz --access public --tag "${{ steps.version.outputs.npm_tag }}"
+      - name: Stage package on npm
+        run: npm stage publish dist/*.tgz --access public --tag "${{ steps.version.outputs.npm_tag }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*.tgz
+          body: |
+            This version is staged on npm and requires maintainer approval before it is available.
           generate_release_notes: true
           prerelease: ${{ steps.version.outputs.prerelease }}
