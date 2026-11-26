@@ -4,6 +4,14 @@ A dependency-free glass material for ordinary HTML elements. It can bend the ele
 
 ## Playground
 
+Try the [interactive demo on GitHub Pages](https://bigimattia.github.io/liquidglass-js/).
+
+![Liquid Glass playground with a lens refracting a coastal photograph](docs/images/playground.png)
+
+![The playground's grid scene showing how the lens bends straight lines](docs/images/grid.png)
+
+To run the playground locally:
+
 ```sh
 mise trust
 mise install
