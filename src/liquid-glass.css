@@ -56,15 +56,6 @@
   pointer-events: none;
 }
 
-:where(.liquid-glass > .liquid-glass-scene) {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  overflow: hidden;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
   :where(.liquid-glass) {
     filter: none;
@@ -80,8 +71,7 @@
     background: currentColor;
   }
 
-  :where(.liquid-glass > .liquid-glass-backdrop),
-  :where(.liquid-glass > .liquid-glass-scene) {
+  :where(.liquid-glass > .liquid-glass-backdrop) {
     visibility: hidden;
   }
 }

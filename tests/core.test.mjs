@@ -128,90 +128,9 @@ test("automatic selection prefers live refraction and falls back to a supplied i
       await frame();
       assert.equal(glass.renderer, "frost");
       assert.equal(lens.querySelector("canvas"), null);
-      document.elementsFromPoint = () => [lens, backdrop];
-      glass.refresh();
-      await frame();
-      assert.equal(glass.renderer, "sampled");
-      document.elementsFromPoint = () => [lens];
-      window.dispatchEvent(new window.Event("scroll"));
-      await frame();
-      assert.equal(glass.renderer, "frost");
     } finally {
       glass.destroy();
       window.close();
     }
   }
-});
-
-test("scene mode copies changing HTML without duplicate IDs and cleans up", async () => {
-  const { window } = new JSDOM('<main id="scene"><p id="card">First</p></main><header></header>', { pretendToBeVisual: true });
-  const { document } = window;
-  window.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
-  window.matchMedia = () => new window.EventTarget();
-  window.HTMLCanvasElement.prototype.getContext = () => ({
-    createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }), putImageData() {},
-  });
-  window.HTMLCanvasElement.prototype.toDataURL = () => "data:image/png;base64,AA==";
-  window.Image.prototype.decode = () => Promise.resolve();
-  const bounds = { width: 60, height: 40, top: 0, left: 0, right: 60, bottom: 40 };
-  window.HTMLElement.prototype.getBoundingClientRect = () => bounds;
-  const host = document.querySelector("header");
-  const scene = document.querySelector("main");
-  Object.defineProperties(host, { clientWidth: { value: 60 }, clientHeight: { value: 40 } });
-  const frame = () => new Promise((resolve) => window.requestAnimationFrame(() => setImmediate(resolve)));
-  const glass = liquidGlass(host, { mode: "scene", scene });
-  try {
-    await frame();
-    assert.equal(glass.renderer, "scene");
-    const copy = host.querySelector(".liquid-glass-scene");
-    assert.equal(copy.textContent, "First");
-    assert.equal(copy.querySelector("[id]"), null);
-    scene.querySelector("p").textContent = "Updated";
-    await frame();
-    assert.equal(copy.textContent, "Updated");
-    glass.update({ mode: "scene", scene: host });
-    await frame();
-    assert.equal(glass.renderer, "frost");
-    assert.equal(host.querySelector(".liquid-glass-scene"), null);
-  } finally {
-    glass.destroy();
-    assert.equal(host.querySelector(".liquid-glass-scene"), null);
-    window.close();
-  }
-});
-
-test("nested scenes choose the nearest ancestor or a key and exclude glass hosts", async () => {
-  const { window } = new JSDOM('<main liquid-glass-scene="outer"><p>Outer</p><section liquid-glass-scene="inner"><p>Inner</p><div liquid-glass></div></section></main>', { pretendToBeVisual: true });
-  const { document } = window;
-  Object.defineProperty(window.navigator, "userAgent", { value: "Firefox/140.0" });
-  window.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
-  window.matchMedia = () => new window.EventTarget();
-  window.HTMLCanvasElement.prototype.getContext = () => ({ createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }), putImageData() {} });
-  window.HTMLCanvasElement.prototype.toDataURL = () => "data:image/png;base64,AA==";
-  window.Image.prototype.decode = () => Promise.resolve();
-  const bounds = { width: 60, height: 40, top: 0, left: 0, right: 60, bottom: 40 };
-  window.HTMLElement.prototype.getBoundingClientRect = () => bounds;
-  const host = document.querySelector("[liquid-glass]");
-  Object.defineProperties(host, { clientWidth: { value: 60 }, clientHeight: { value: 40 } });
-  const frame = () => new Promise((resolve) => window.requestAnimationFrame(() => setImmediate(resolve)));
-  const glass = liquidGlass(host);
-  try {
-    await frame();
-    assert.equal(glass.renderer, "scene");
-    assert.equal(host.querySelector(".liquid-glass-scene").textContent, "Inner");
-    assert.equal(host.querySelector(".liquid-glass-scene [liquid-glass]"), null);
-    glass.update({ scene: "outer" });
-    await frame();
-    assert.equal(host.querySelector(".liquid-glass-scene").textContent, "OuterInner");
-    host.setAttribute("liquid-glass", "inner");
-    glass.update({ scene: null });
-    await frame();
-    assert.equal(host.querySelector(".liquid-glass-scene").textContent, "Inner");
-    glass.update({ scene: document.querySelector("main") });
-    await frame();
-    assert.equal(host.querySelector(".liquid-glass-scene").textContent, "OuterInner");
-    glass.update({ mode: "scene", scene: "missing" });
-    await frame();
-    assert.equal(glass.renderer, "frost");
-  } finally { glass.destroy(); window.close(); }
 });

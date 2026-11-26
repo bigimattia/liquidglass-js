@@ -9,7 +9,6 @@
       "default": "./build/core/liquid-glass.js"
     },
     "./style.css": "./build/core/liquid-glass.css",
-    "./auto": "./build/core/auto.js",
     "./angular": {
       "types": "./build/angular/index.d.ts",
       "default": "./build/angular/index.js"
@@ -29,8 +28,7 @@
     "build"
   ],
   "sideEffects": [
-    "**/*.css",
-    "**/auto.js"
+    "**/*.css"
   ],
   "keywords": [
     "liquid-glass",
@@ -69,6 +67,10 @@
     "typescript": "5.9.3",
     "vue": "3.5.45"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bigimattia/liquidglass-js.git"
+  },
   "publishConfig": {
     "registry": "https://registry.npmjs.org",
     "access": "public"
@@ -76,9 +78,5 @@
   "scripts": {
     "prepack": "mise run build"
   },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/bigimattia/liquidglass-js.git"
-  }
+  "license": "MIT"
 }

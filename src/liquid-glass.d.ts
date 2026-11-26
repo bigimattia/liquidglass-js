@@ -1,13 +1,11 @@
-export type LiquidGlassMode = "auto" | "content" | "backdrop" | "sampled" | "scene" | "frost";
-export type LiquidGlassRenderer = "content" | "backdrop" | "sampled" | "scene" | "frost";
+export type LiquidGlassMode = "auto" | "content" | "backdrop" | "sampled" | "frost";
+export type LiquidGlassRenderer = "content" | "backdrop" | "sampled" | "frost";
 
 export interface LiquidGlassOptions {
-  /** Auto prefers live refraction, then a supplied or discovered media backdrop, then frost. */
+  /** Auto (default) prefers live backdrop refraction, then a supplied backdrop, then frost. */
   mode?: LiquidGlassMode;
   /** Optional image, canvas, or video displayed behind a lens in auto, sampled, or backdrop mode. */
   backdrop?: HTMLImageElement | HTMLCanvasElement | HTMLVideoElement | null;
-  /** Scene element or key of a marked ancestor. Omit for the nearest marked ancestor. */
-  scene?: HTMLElement | string | null;
   /** Uniform corner radius in CSS pixels. Defaults to 24. */
   radius?: number;
   /** Blur in CSS pixels. Defaults to 2. */
@@ -39,7 +37,7 @@ export interface LiquidGlassController {
   readonly renderer: LiquidGlassRenderer;
   /** Merge changes, or reset omitted options to their defaults with replace. */
   update(options: LiquidGlassOptions, behavior?: { replace?: boolean }): void;
-  /** Rediscover and resample the backdrop after moving the lens or drawing canvas content. */
+  /** Resample an explicit backdrop after changing position or drawing new canvas content. */
   refresh(): void;
   destroy(): void;
 }

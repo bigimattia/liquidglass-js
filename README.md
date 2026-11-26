@@ -10,7 +10,7 @@ mise install
 mise run dev
 ```
 
-Open [the local playground](http://127.0.0.1:4173/demo/) over HTTP; some browsers block modules loaded directly from a `file://` URL. Drag the lens or focus it and use the arrow keys. Compare the photo, grid and typography scenes and change the optical settings. Select Button, Switch, Slider, Segmented, or Media in the native-controls showcase to try the control and copy Tailwind HTML, JavaScript, Angular, Vue, or React source. The usage panel includes examples for all four entry points.
+Open [the local playground](http://127.0.0.1:4173/demo/). Drag the lens or focus it and use the arrow keys. Compare the photo, grid and typography scenes and change the optical settings. Select Button, Switch, Slider, Segmented, or Media in the native-controls showcase to try the control and copy Tailwind HTML, JavaScript, Angular, Vue, or React source. The usage panel includes examples for all four entry points.
 
 ## Install
 
@@ -29,26 +29,6 @@ Update the version in `package.json`, then run **Publish to npm** from the Actio
 ## License
 
 [MIT](LICENSE)
-
-## Declarative scenes
-
-Import the optional initializer and stylesheet once; it mounts and cleans up elements marked `liquid-glass` as they enter or leave the document:
-
-```js
-import "@ikeofficial/liquid-glass-js/style.css";
-import "@ikeofficial/liquid-glass-js/auto";
-```
-
-```html
-<div liquid-glass-scene="page">
-  <div liquid-glass-scene="card">
-    <div liquid-glass>Uses the nearest scene: card</div>
-    <div liquid-glass="page">Uses the ancestor named page</div>
-  </div>
-</div>
-```
-
-Without a value, a glass host uses its nearest marked ancestor. A value selects the nearest ancestor with that key. With the JavaScript API, use `scene: "page"` to select a key, or pass a scene element directly. Default `auto` mode prefers live backdrop refraction where supported, then an explicit media backdrop, then a marked scene, followed by discovered media and frost. Set `mode: "scene"` to use the scene copy in every browser. The attribute alone does not initialize the core unless the optional `auto` entry is imported or a framework adapter mounts it.
 
 ## Plain JavaScript
 
@@ -118,19 +98,16 @@ The directive can also be registered globally with `app.directive("liquid-glass"
 | Options | What bends | Browser behavior |
 | --- | --- | --- |
 | `{ mode: "content" }` | The host’s rendered pixels, including its CSS background and descendants | SVG element filter in Chromium, Firefox and WebKit |
-| Default, or `{ mode: "auto" }` | Live page pixels when supported, otherwise a supplied or discovered media element | SVG refraction in Chromium, sampled media when available, then CSS frost |
+| Default, or `{ mode: "auto" }` | Live page pixels when supported, otherwise the supplied backdrop | SVG refraction in Chromium, sampled media when supplied, then CSS frost |
 | `{ mode: "backdrop" }` | Arbitrary page pixels behind the host | SVG refraction in Chromium. CSS frost in other engines. A supplied backdrop retains its sample-first behavior. |
 | `{ mode: "sampled", backdrop: media }` | A supplied `<img>`, `<canvas>`, or `<video>` behind the host | Shared WebGL renderer where available, with Canvas 2D fallback |
-| `{ mode: "scene", scene: element }` | An aligned, non-interactive copy of a separate HTML scene | SVG element filter in Chromium, Firefox and WebKit |
 | `{ mode: "frost" }` | No displacement | CSS tint, blur and highlights where supported |
 
 Use an ordinary HTML host with available `::before` and `::after` pseudo-elements. For content mode, put the artwork inside the host or use a CSS background. The filter refracts pixels only inside the lens silhouette. Use a decorative presentation layer for labels that must stay sharp, and keep the filtered host compact on mobile. The playground clips the aligned scene copy at the parent after refraction, so the glass outline stays stable as the optical settings change.
 
 A sampled media element must sit visually behind the lens in the same document, axis-aligned, without padding or borders. Images and videos support `object-fit: fill` or centered `cover` or `contain`. Use a same-origin or CORS-enabled source. The library resamples on resize, scroll, and media load. Video uses `requestVideoFrameCallback()` when available. Call `glass.refresh()` after moving the lens programmatically or redrawing a canvas.
 
-When no `backdrop` is supplied, auto and sampled modes look for an image, canvas, or video behind the lens at its center. Discovery runs on scroll, resize, and `refresh()`. It cannot capture CSS backgrounds or arbitrary HTML, and samples only one media element; an explicit `backdrop` is more predictable. If no suitable media is found, the renderer falls back to frost. Use `mode: "sampled"` when the video or image should drive refraction on every browser. For the native-control snippets, load Tailwind CSS v4 and the shared glass stylesheet. The Media example also needs a same-origin video and poster, or a video served with CORS enabled and loaded with `crossorigin="anonymous"`.
-
-Scene mode is an approximation for ordinary HTML behind a small number of glass elements. A scene may contain the glass host; glass hosts are excluded from copies to prevent recursion. The library copies its DOM and computed styles, synchronizes scrolling, and rebuilds on DOM changes or resize; call `refresh()` for changes it cannot observe, such as stylesheet changes. Copies are inert and IDs are removed. Canvas, video, iframes, scripts, and custom elements are omitted; animated state, pseudo-elements, fixed or transformed descendants, and complex layouts may not match. Large or frequently changing scenes and multiple glass elements can be expensive. The demo header has a scene-copy toggle for comparing it with the selected renderer.
+Automatic mode requires an explicit `backdrop` element for the sampled fallback. Use `mode: "sampled"` when the video or image should drive refraction on every browser. For the native-control snippets, load Tailwind CSS v4 and the shared glass stylesheet. The Media example also needs a same-origin video and poster, or a video served with CORS enabled and loaded with `crossorigin="anonymous"`.
 
 The SVG modes use an internally generated PNG data URL. Where CSP disallows `data:` images, use a sampled backdrop or frost. Reduced motion disables pointer tracking. Reduced transparency and forced colors use a solid treatment. A CSS-only treatment is also available by applying the `liquid-glass` class with the shared stylesheet.
 

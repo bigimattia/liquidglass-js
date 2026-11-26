@@ -1,7 +1,6 @@
 import { lensGeometry } from "./optics.js";
 import { resolveOptions } from "./options.js";
 import { makeBackdropLens } from "./renderers/sampled.js";
-import { makeSceneLens } from "./renderers/scene.js";
 import { browserEngine, makeSvgLens } from "./renderers/svg.js";
 
 const instances = new WeakMap();
@@ -27,12 +26,10 @@ export function liquidGlass(element, changes = {}) {
   const solid = view.matchMedia("(prefers-reduced-transparency: reduce), (forced-colors: active)");
   const originalStyles = new Map();
   const hadClass = element.classList.contains(material);
-  const observer = new view.ResizeObserver(() => { sceneLens?.refresh(); schedule(); });
+  const observer = new view.ResizeObserver(schedule);
   let svgLens;
   let svgMode;
   let sampledLens;
-  let sceneLens;
-  let sceneSource;
   let geometry;
   let source;
   let stopVideo;
@@ -55,11 +52,9 @@ export function liquidGlass(element, changes = {}) {
     if (!destroyed && frame === null) frame = view.requestAnimationFrame(render);
   }
 
-  function resize() { sceneLens?.refresh(); schedule(); }
-
   function setRenderer(renderer, url = "") {
-    style("overlay-filter", renderer === "content" || renderer === "scene" ? "none" : "");
-    style("css-rim", ["content", "sampled"].includes(renderer) ? 0 : "");
+    style("overlay-filter", renderer === "content" ? "none" : "");
+    style("css-rim", renderer === "content" || renderer === "sampled" ? 0 : "");
     style("content-filter", renderer === "content" ? url : "");
     style("lens", renderer === "backdrop" ? url : "");
     if (activeRenderer === renderer) return;
@@ -83,18 +78,12 @@ export function liquidGlass(element, changes = {}) {
     const content = mode === "content";
     const live = supportsBackdrop && (mode === "auto" || mode === "backdrop");
     const preferLive = live && mode === "auto";
-    if (mode === "scene" || (mode === "auto" && !preferLive && !options.backdrop)) watchScene(resolveScene());
-    const useScene = mode === "scene" || (mode === "auto" && !preferLive && !options.backdrop && !!sceneLens);
-    if (!useScene && options.refraction && ["auto", "sampled"].includes(mode) && !options.backdrop && !preferLive) {
-      watchSource(discoverSource());
-    }
     const width = content ? element.offsetWidth : element.clientWidth;
     const height = content ? element.offsetHeight : element.clientHeight;
     if (solid.matches || mode === "frost" || !refraction || !element.isConnected || !width || !height) {
       setRenderer("frost");
       clearSvg();
       sampledLens?.canvas.remove();
-      sceneLens?.layer.remove();
       return;
     }
 
@@ -103,31 +92,6 @@ export function liquidGlass(element, changes = {}) {
     if (key !== geometry?.key) {
       geometry = { ...lensGeometry(width, height, options, density), width, height, key };
     }
-
-    if (useScene) {
-      sampledLens?.canvas.remove();
-      if (!sceneLens || !sceneLens.render()) {
-        sceneLens?.layer.remove();
-        clearSvg();
-        setRenderer("frost");
-        return;
-      }
-      if (!sceneLens.layer.parentNode) element.prepend(sceneLens.layer);
-      if (svgMode !== "scene") {
-        clearSvg();
-        svgLens = makeSvgLens(element, engine, "content");
-        svgMode = "scene";
-        setRenderer("frost");
-      }
-      const renderedOptions = options;
-      svgLens.render(geometry, options, (url) => {
-        if (options !== renderedOptions || !sceneLens) return;
-        sceneLens.layer.style.filter = url || "none";
-        setRenderer(url ? "scene" : "frost");
-      });
-      return;
-    }
-    sceneLens?.layer.remove();
 
     function sample() {
       if (!source) {
@@ -174,41 +138,6 @@ export function liquidGlass(element, changes = {}) {
     });
   }
 
-  function resolveScene() {
-    if (options.scene instanceof view.HTMLElement) return options.scene;
-    const key = typeof options.scene === "string" ? options.scene : element.getAttribute("liquid-glass");
-    for (let parent = element.parentElement; parent; parent = parent.parentElement) {
-      if (parent.hasAttribute("liquid-glass-scene") && (!key || parent.getAttribute("liquid-glass-scene") === key)) return parent;
-    }
-    return null;
-  }
-
-  function watchScene(next) {
-    if (next === element || (next && element.contains(next))) next = null;
-    if (next === sceneSource) return;
-    if (sceneSource) observer.unobserve(sceneSource);
-    sceneLens?.destroy();
-    sceneSource = next;
-    sceneLens = next ? makeSceneLens(element, next, schedule) : undefined;
-    if (next) observer.observe(next);
-  }
-
-  // Only media found behind the lens at its center can be sampled. This is not
-  // a capture of the surrounding DOM; explicit backdrops remain authoritative.
-  function discoverSource() {
-    const bounds = element.getBoundingClientRect();
-    const hits = document.elementsFromPoint?.(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2) ?? [];
-    let behind = false;
-    for (const hit of hits) {
-      if (hit === element || element.contains(hit)) { behind = true; continue; }
-      if (!behind || hit.contains(element)) continue;
-      if (hit.matches("img, video, canvas") && !hit.classList.contains("liquid-glass-backdrop")) return hit;
-      const background = view.getComputedStyle(hit).backgroundColor;
-      if (background && background !== "transparent" && background !== "rgba(0, 0, 0, 0)") return null;
-    }
-    return null;
-  }
-
   function resetLight() {
     pointer = undefined;
     style("light-x", "");
@@ -242,6 +171,11 @@ export function liquidGlass(element, changes = {}) {
       observer.observe(source);
       source.addEventListener("load", schedule);
       if (source.localName === "video") stopVideo = watchVideo(source);
+      view.addEventListener("scroll", schedule, true);
+      view.addEventListener("resize", schedule);
+    } else {
+      view.removeEventListener("scroll", schedule, true);
+      view.removeEventListener("resize", schedule);
     }
   }
 
@@ -269,15 +203,8 @@ export function liquidGlass(element, changes = {}) {
     style("edge", options.edgeHighlight);
     style("angle", options.lightAngle + "deg");
     if (!options.interactive) resetLight();
-    const watching = options.refraction && ["auto", "backdrop", "sampled", "scene"].includes(options.mode);
-    watchSource(watching && options.mode !== "scene" ? options.backdrop : null);
-    watchScene(options.mode === "scene" || (options.mode === "auto" && !supportsBackdrop && !options.backdrop) ? resolveScene() : null);
-    view.removeEventListener("scroll", schedule, true);
-    view.removeEventListener("resize", resize);
-    if (watching) {
-      view.addEventListener("scroll", schedule, true);
-      view.addEventListener("resize", resize);
-    }
+    watchSource(options.refraction && ["auto", "backdrop", "sampled"].includes(options.mode)
+      ? options.backdrop : null);
     schedule();
   }
 
@@ -290,7 +217,7 @@ export function liquidGlass(element, changes = {}) {
       options = resolveOptions(view, changes, replace ? undefined : options);
       applyOptions();
     },
-    refresh() { sceneLens?.refresh(); schedule(); },
+    refresh: schedule,
     destroy() {
       if (destroyed) return;
       destroyed = true;
@@ -298,10 +225,7 @@ export function liquidGlass(element, changes = {}) {
       if (lightFrame !== null) view.cancelAnimationFrame(lightFrame);
       clearSvg();
       sampledLens?.canvas.remove();
-      sceneLens?.destroy();
       watchSource(null);
-      view.removeEventListener("scroll", schedule, true);
-      view.removeEventListener("resize", resize);
       observer.disconnect();
       element.removeEventListener("pointermove", moveLight);
       element.removeEventListener("pointerleave", resetLight);

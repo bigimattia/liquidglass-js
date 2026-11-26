@@ -10,16 +10,10 @@
   <link rel="stylesheet" href="./control-utilities.css">
   <script type="module" src="./demo.js"></script>
 </head>
-<body liquid-glass-scene="page">
-  <div class="file-warning" id="file-warning" hidden role="alert">
-    Some browsers block glass effects when opening a local file. Run <code>mise run dev</code>, then open
-    <a href="http://127.0.0.1:4173/demo/">the local playground</a>.
-  </div>
-  <script>if (location.protocol === "file:") document.getElementById("file-warning").hidden = false;</script>
-  <header class="topbar wrap" id="topbar" liquid-glass="page">
+<body>
+  <header class="topbar wrap">
     <a class="wordmark" href="#top"><span class="mark" aria-hidden="true"></span> Liquid Glass JS</a>
     <nav aria-label="On this page">
-      <span id="topbar-renderer" class="topbar-status" aria-live="polite"></span>
       <a href="#playground">Playground</a>
       <a href="#controls">Controls</a>
       <a href="#usage">Usage <span aria-hidden="true">↗</span></a>
@@ -53,7 +47,7 @@
             <span class="lens-label" aria-hidden="true">✦ &nbsp;Move lens</span>
           </div>
         </div>
-        <p class="viewer-note" id="move-help">Drag the lens or use the arrow keys when it’s focused. <button class="quiet" type="button" id="test-header">Test header over grid</button></p>
+        <p class="viewer-note" id="move-help">Drag the lens or use the arrow keys when it’s focused.</p>
       </div>
 
       <div class="inspector">
@@ -80,9 +74,7 @@
         <div class="toggle-row">
           <label><input id="enabled" type="checkbox" checked> Glass on</label>
           <label><input id="interactive" type="checkbox" checked> Pointer light</label>
-          <label><input id="header-scene" type="checkbox" checked> Header scene copy</label>
         </div>
-        <p class="renderer-note">The header copies the page below it when scene copy is enabled. Scroll to compare; turn it off to follow the selected renderer.</p>
       </div>
     </section>
 

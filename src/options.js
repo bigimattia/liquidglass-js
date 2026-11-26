@@ -1,7 +1,6 @@
 const defaults = Object.freeze({
   mode: "auto",
   backdrop: null,
-  scene: null,
   radius: 24,
   blur: 2,
   refraction: 18,
@@ -41,12 +40,8 @@ export function resolveOptions(view, changes, current = defaults) {
       throw new RangeError("Invalid liquidGlass option: " + key);
     }
   }
-  if (!["auto", "content", "backdrop", "sampled", "scene", "frost"].includes(options.mode)) {
-    throw new TypeError('mode must be "auto", "content", "backdrop", "sampled", "scene", or "frost"');
-  }
-  if (options.scene !== null && typeof options.scene !== "string" &&
-      (!(options.scene instanceof view.HTMLElement) || options.scene.ownerDocument !== view.document)) {
-    throw new TypeError("scene must be a scene key, an HTML element from the same document, or null");
+  if (!["auto", "content", "backdrop", "sampled", "frost"].includes(options.mode)) {
+    throw new TypeError('mode must be "auto", "content", "backdrop", "sampled", or "frost"');
   }
   if (typeof options.interactive !== "boolean") {
     throw new TypeError("interactive must be a boolean");

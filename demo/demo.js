@@ -39,7 +39,6 @@ const presets = {
 };
 let values = { ...clear };
 let glass;
-let topbarGlass;
 let x = stage.clientWidth / 2;
 let y = stage.clientHeight / 2;
 let drag;
@@ -80,16 +79,13 @@ function showStatus() {
     content: "SVG · element content",
     backdrop: "SVG · live backdrop",
     sampled: "Sampled image",
-    scene: "Scene copy",
     frost: "CSS · frosted glass",
   };
   const label = glass ? labels[glass.renderer] : "Glass disabled";
   if (status.textContent !== label) status.textContent = label;
-  byId("topbar-renderer").textContent = topbarGlass ? labels[topbarGlass.renderer] : "Glass disabled";
   byId("renderer-note").hidden = !(glass && ["auto", "backdrop", "sampled"].includes(mode.value) && glass.renderer === "frost" && values.refraction > 0);
 }
 lens.addEventListener("liquidglass:rendererchange", showStatus);
-byId("topbar").addEventListener("liquidglass:rendererchange", showStatus);
 
 function coreOptions() {
   const { width, height, ...optics } = values;
@@ -118,17 +114,9 @@ function update() {
     const options = coreOptions();
     if (glass) glass.update(options);
     else glass = liquidGlass(lens, options);
-    // Discover media under the bar instead of supplying the playground source.
-    const { backdrop, ...barOptions } = options;
-    const scene = byId("header-scene").checked;
-    const headerOptions = { ...barOptions, mode: scene ? "scene" : mode.value, scene: scene ? "page" : null, backdrop: null };
-    if (topbarGlass) topbarGlass.update(headerOptions);
-    else topbarGlass = liquidGlass(byId("topbar"), headerOptions);
   } else {
     glass?.destroy();
     glass = undefined;
-    topbarGlass?.destroy();
-    topbarGlass = undefined;
   }
   moveTo(x, y);
   showCode();
@@ -206,17 +194,9 @@ byId("scenes").addEventListener("change", () => {
   stage.dataset.scene = scene;
   update();
 });
-byId("test-header").addEventListener("click", () => {
-  byId("scenes").querySelector('[value="grid"]').checked = true;
-  stage.dataset.scene = "grid";
-  update();
-  moveTo(x, stage.clientHeight - metrics.halfHeight - 6);
-  window.scrollTo({ top: window.scrollY + stage.getBoundingClientRect().top + stage.clientHeight / 3 - 8, behavior: "instant" });
-});
 mode.addEventListener("change", update);
 enabled.addEventListener("change", update);
 pointer.addEventListener("change", update);
-byId("header-scene").addEventListener("change", update);
 for (const image of stage.querySelectorAll(".scene-art")) image.addEventListener("load", update);
 
 byId("presets").addEventListener("change", (event) => {

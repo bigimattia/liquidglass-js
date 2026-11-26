@@ -16,19 +16,16 @@ const types = new Map([
 const root = fileURLToPath(new URL("../", import.meta.url));
 const files = new Map();
 
-async function refreshFiles() {
-  for (const directory of ["demo", "src"]) {
-    const source = join(root, directory);
-    for (const file of await readdir(source, { recursive: true, withFileTypes: true })) {
-      const type = types.get(file.name.split(".").at(-1));
-      if (!file.isFile() || !type) continue;
-      const realPath = join(file.parentPath, file.name);
-      const urlPath = "/" + relative(root, realPath).split(sep).map(encodeURIComponent).join("/");
-      files.set(urlPath, { realPath, type });
-    }
+for (const directory of ["demo", "src"]) {
+  const source = join(root, directory);
+  for (const file of await readdir(source, { recursive: true, withFileTypes: true })) {
+    const type = types.get(file.name.split(".").at(-1));
+    if (!file.isFile() || !type) continue;
+    const realPath = join(file.parentPath, file.name);
+    const urlPath = "/" + relative(root, realPath).split(sep).map(encodeURIComponent).join("/");
+    files.set(urlPath, { realPath, type });
   }
 }
-await refreshFiles();
 
 const server = createServer(async (request, response) => {
   const path = request.url.split("?")[0];
@@ -37,11 +34,7 @@ const server = createServer(async (request, response) => {
     return;
   }
   const file = path === "/demo/" ? "/demo/index.html" : path;
-  let entry = files.get(file);
-  if (!entry) {
-    await refreshFiles();
-    entry = files.get(file);
-  }
+  const entry = files.get(file);
   if (!entry) {
     response.writeHead(404).end();
     return;
