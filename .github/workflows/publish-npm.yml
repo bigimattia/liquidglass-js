@@ -1,29 +1,49 @@
-name: Publish to npm
+name: Release and publish to npm
 
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v2
-      - name: Install dependencies
-        run: mise run install
-      - name: Build and check
-        run: mise run check
-      - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-publish.npmrc
+      - name: Verify tag matches package version
+        id: version
         run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "::error::Set the NPM_TOKEN repository secret to an npm granular access token with publish access."
+          version=$(mise exec -- node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package version v$version."
             exit 1
           fi
-          printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' > "$NPM_CONFIG_USERCONFIG"
-          mise exec -- npm publish --access public
+          if [[ "$version" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "npm_tag=next" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "npm_tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install dependencies
+        run: mise run install
+      - name: Build, check, and package
+        run: mise run pack
+      - name: Configure npm registry
+        uses: actions/setup-node@v4
+        with:
+          registry-url: https://registry.npmjs.org/
+      - name: Publish to npm
+        run: npm publish dist/*.tgz --access public --tag "${{ steps.version.outputs.npm_tag }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.tgz
+          generate_release_notes: true
+          prerelease: ${{ steps.version.outputs.prerelease }}
