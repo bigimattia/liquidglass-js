@@ -264,6 +264,11 @@ byId("frameworks").addEventListener("change", showCode);
 bindCopy(byId("copy"), example);
 mountControlShowcase();
 
+liquidGlass(document.querySelector(".topbar"), {
+  mode: "auto", radius: 24, blur: 12, refraction: 14,
+  tint: .42, glow: .18, interactive: false,
+});
+
 liquidGlass(byId("live-dom"), { mode: "content", radius: 19, blur: 0, refraction: 13, tint: .06 });
 
 new ResizeObserver(() => {
