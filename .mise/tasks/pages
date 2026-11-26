@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#MISE description="Prepare the demo for GitHub Pages"
+#MISE depends=["demo-css"]
+set -euo pipefail
+rm -rf _site
+mkdir -p _site/src
+cp -R demo/. _site/
+cp -R src/. _site/src/
+node --input-type=module <<'JS'
+import { readFile, writeFile } from "node:fs/promises";
+for (const file of ["_site/index.html", "_site/demo.js", "_site/native-controls.js"]) {
+  const contents = await readFile(file, "utf8");
+  await writeFile(file, contents.replaceAll('"../src/', '"./src/'));
+}
+JS
