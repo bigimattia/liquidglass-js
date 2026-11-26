@@ -2,9 +2,6 @@ name: Release and stage on npm
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
 
 permissions:
   contents: write
@@ -14,15 +11,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: jdx/mise-action@v2
-      - name: Verify tag matches package version
+      - name: Determine release version
         id: version
         run: |
           version=$(mise exec -- node -p "require('./package.json').version")
-          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match package version v$version."
+          tag="v$version"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "$tag" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package version $tag."
             exit 1
           fi
+          if git rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
+            tag_commit=$(git rev-parse "refs/tags/$tag^{commit}")
+            if [ "$tag_commit" != "$(git rev-parse HEAD)" ]; then
+              echo "::error::Tag $tag already points to a different commit."
+              exit 1
+            fi
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
           if [[ "$version" == *-* ]]; then
             echo "prerelease=true" >> "$GITHUB_OUTPUT"
             echo "npm_tag=next" >> "$GITHUB_OUTPUT"
@@ -45,6 +53,8 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           files: dist/*.tgz
           body: |
             This version is staged on npm and requires maintainer approval before it is available.
