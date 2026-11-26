@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Check core and playground syntax and verify framework lifecycles"
+#MISE depends=["build", "demo-css"]
+set -euo pipefail
+node --check demo/demo.js
+node --check demo/native-controls.js
+node --check scripts/serve.mjs
+node --test tests/*.test.mjs

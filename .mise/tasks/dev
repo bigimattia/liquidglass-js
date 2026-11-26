@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Serve the liquid glass playground"
+#MISE depends=["demo-css"]
+set -euo pipefail
+node scripts/serve.mjs

@@ -4,35 +4,3 @@ node = "24"
 [env]
 LIQUID_GLASS_HOST = "127.0.0.1"
 LIQUID_GLASS_PORT = "4173"
-
-[tasks.install]
-description = "Install locked development tools and framework test dependencies"
-run = "npm ci --no-audit --no-fund"
-
-[tasks.dev]
-description = "Serve the liquid glass playground"
-depends = ["demo-css"]
-run = "node scripts/serve.mjs"
-
-[tasks.demo-css]
-description = "Generate Tailwind utilities for the native controls"
-run = "node scripts/build-control-css.mjs"
-
-[tasks.build]
-description = "Build and minify the core, stylesheet, and framework adapters"
-run = "node scripts/build-package.mjs"
-
-[tasks.check]
-description = "Check core and playground syntax and verify framework lifecycles"
-depends = ["build", "demo-css"]
-run = [
-  "node --check demo/demo.js",
-  "node --check demo/native-controls.js",
-  "node --check scripts/serve.mjs",
-  "node --test tests/*.test.mjs",
-]
-
-[tasks.pack]
-description = "Package the core, framework adapters, and agent skill in dist/"
-depends = ["check"]
-run = "mkdir -p dist && npm pack --pack-destination dist"

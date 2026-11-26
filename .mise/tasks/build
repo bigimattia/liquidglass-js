@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Build and minify the core, stylesheet, and framework adapters"
+set -euo pipefail
+node scripts/build-package.mjs

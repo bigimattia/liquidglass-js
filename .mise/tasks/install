@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Install locked development tools and framework test dependencies"
+set -euo pipefail
+npm ci --no-audit --no-fund

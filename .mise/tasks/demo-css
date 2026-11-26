@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Generate Tailwind utilities for the native controls"
+set -euo pipefail
+node scripts/build-control-css.mjs
