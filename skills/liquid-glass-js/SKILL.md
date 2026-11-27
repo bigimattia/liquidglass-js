@@ -1,6 +1,6 @@
 ---
 name: liquid-glass-js
-description: Install and integrate the Liquid Glass JS library with plain JavaScript, Angular, React, or Vue. Use when a user requests this library or wants to tune its element, image, or live-page refraction.
+description: Install and integrate the Liquid Glass JS library with plain JavaScript, Angular, React, or Vue. Use when a user requests this library or wants to tune its viewport or live-page refraction.
 ---
 
 ## Install
@@ -17,9 +17,9 @@ description: Install and integrate the Liquid Glass JS library with plain JavaSc
 
 Use an ordinary HTML host with geometry supplied by the app’s CSS and available `::before` and `::after` pseudo-elements. The adapters clean themselves up and treat a new options object as the complete configuration.
 
-## Choose the surface to refract
+## Choose the renderer
 
-- `{ mode: "content" }` bends the host’s own rendered pixels across browsers. Put the artwork inside the element or paint it via its CSS background. Use a decorative layer when text must stay optically sharp.
-- `{ mode: "sampled", backdrop: media }` samples a same-origin or CORS-enabled image, canvas, or video behind the lens. Use an axis-aligned, borderless source and `object-fit: fill` or centered `cover` or `contain`. Call `glass.refresh()` after changing position or redrawing a canvas.
-- Automatic mode (the default) refracts live page pixels in Chromium and falls back to the supplied backdrop or CSS frost. Use `{ mode: "backdrop" }` without a source to select live page refraction explicitly. `{ mode: "frost" }` uses CSS directly. Use sampled or frost mode if CSP prevents the generated SVG-map image.
-- Use the target project’s own markup and geometry. Check focus, contrast, and the effect over detailed artwork. Run `mise run dev` in the library checkout for the playground and framework examples.
+- Omitting `mode` selects `auto`. Use `{ viewportSource: source }` to try native backdrop refraction, then viewport SVG when the source is usable, then frost.
+- `{ mode: "viewport", viewportSource: source }` selects viewport SVG explicitly. Supply a same-tree HTML element or selector. Use a bounded scroll pane and position the lens above it in a separate layer. In Angular, a template reference such as `#feed` can be passed as `viewportSource: feed`.
+- `{ mode: "backdrop" }` selects native backdrop refraction when available. `{ mode: "frost" }` selects CSS frost directly. `{ mode: "off" }` disables the material and restores author styling.
+- Call `glass.refresh()` after moving the lens relative to the source or replacing its selector target. Run `mise run dev` and use the **Usage** renderer picker to get a matching JavaScript, Angular, React, or Vue example. Verify the effect over live text and detailed artwork.
