@@ -1,6 +1,6 @@
 {
   "name": "@ikeofficial/liquid-glass-js",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Refractive, interactive glass surfaces for the web",
   "type": "module",
   "exports": {
