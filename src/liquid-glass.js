@@ -1,7 +1,7 @@
 import { lensGeometry } from "./optics.js";
 import { resolveOptions } from "./options.js";
-import { makeBackdropLens } from "./renderers/sampled.js";
 import { browserEngine, makeSvgLens } from "./renderers/svg.js";
+import { makeViewportLens } from "./renderers/viewport.js";
 
 const instances = new WeakMap();
 const material = "liquid-glass";
@@ -28,15 +28,13 @@ export function liquidGlass(element, changes = {}) {
   const hadClass = element.classList.contains(material);
   const observer = new view.ResizeObserver(schedule);
   let svgLens;
-  let svgMode;
-  let sampledLens;
+  let viewportLens;
   let geometry;
-  let source;
-  let stopVideo;
+  let source = null;
   let frame = null;
   let lightFrame = null;
   let pointer;
-  let activeRenderer = "frost";
+  let activeRenderer = "off";
   let destroyed = false;
 
   function style(property, value) {
@@ -48,15 +46,22 @@ export function liquidGlass(element, changes = {}) {
     element.style.setProperty(name, value);
   }
 
+  function restoreStyles() {
+    for (const [name, [value, priority]] of originalStyles) {
+      element.style.setProperty(name, value, priority);
+    }
+    originalStyles.clear();
+  }
+
   function schedule() {
-    if (!destroyed && frame === null) frame = view.requestAnimationFrame(render);
+    if (!destroyed && options.mode !== "off" && frame === null) frame = view.requestAnimationFrame(render);
   }
 
   function setRenderer(renderer, url = "") {
-    style("overlay-filter", renderer === "content" ? "none" : "");
-    style("css-rim", renderer === "content" || renderer === "sampled" ? 0 : "");
-    style("content-filter", renderer === "content" ? url : "");
-    style("lens", renderer === "backdrop" ? url : "");
+    if (renderer !== "off") {
+      style("overlay-filter", renderer === "viewport" ? "none" : "");
+      style("lens", renderer === "backdrop" ? url : "");
+    }
     if (activeRenderer === renderer) return;
     activeRenderer = renderer;
     view.queueMicrotask(() => {
@@ -69,83 +74,108 @@ export function liquidGlass(element, changes = {}) {
   function clearSvg() {
     svgLens?.dispose();
     svgLens = undefined;
-    svgMode = undefined;
+  }
+
+  function scroll(event) {
+    // Scrolling inside the source changes its sampled pixels, not the relative lens position.
+    if (!(event.target instanceof view.Node) || !source?.contains(event.target)) schedule();
+  }
+
+  function watchSource(next) {
+    if (next === source) return;
+    viewportLens?.dispose();
+    viewportLens = undefined;
+    if (source) observer.unobserve(source);
+    if (!source && next) {
+      view.addEventListener("scroll", scroll, true);
+      view.addEventListener("resize", schedule);
+    }
+    source = next;
+    if (source) observer.observe(source);
+    if (!source) {
+      view.removeEventListener("scroll", scroll, true);
+      view.removeEventListener("resize", schedule);
+    }
+  }
+
+  function viewportSource() {
+    const tree = element.getRootNode();
+    let target = options.viewportSource;
+    if (typeof target === "string") {
+      try {
+        target = tree.querySelector(target);
+      } catch {
+        return null;
+      }
+    }
+    if (!(target instanceof view.HTMLElement) || target.getRootNode() !== tree
+      || target.contains(element) || element.contains(target)) return null;
+    return target;
+  }
+
+  function renderViewport() {
+    const next = viewportSource();
+    watchSource(next);
+    if (!next?.isConnected) {
+      setRenderer("frost");
+      return;
+    }
+    viewportLens ??= makeViewportLens(element, next, engine);
+    if (activeRenderer !== "viewport") setRenderer("frost");
+    const renderedOptions = options;
+    viewportLens.render(options, (applied) => {
+      if (options === renderedOptions) setRenderer(applied ? "viewport" : "frost");
+    });
   }
 
   function render() {
     frame = null;
-    const { mode, refraction, radius, bevel, curvature, lightAngle } = options;
-    const content = mode === "content";
-    const live = supportsBackdrop && (mode === "auto" || mode === "backdrop");
-    const preferLive = live && mode === "auto";
-    const width = content ? element.offsetWidth : element.clientWidth;
-    const height = content ? element.offsetHeight : element.clientHeight;
+    const { mode, refraction, radius, bevel, curvature } = options;
+    const { clientWidth: width, clientHeight: height } = element;
     if (solid.matches || mode === "frost" || !refraction || !element.isConnected || !width || !height) {
-      setRenderer("frost");
       clearSvg();
-      sampledLens?.canvas.remove();
+      watchSource(null);
+      setRenderer("frost");
       return;
     }
 
-    const density = content ? Math.min(view.devicePixelRatio || 1, 2) : 1;
-    const key = [width, height, Math.min(radius, width / 2, height / 2), bevel, curvature, lightAngle, density].join("/");
-    if (key !== geometry?.key) {
-      geometry = { ...lensGeometry(width, height, options, density), width, height, key };
-    }
-
-    function sample() {
-      if (!source) {
-        sampledLens?.canvas.remove();
-        return false;
-      }
-      sampledLens ??= makeBackdropLens(document);
-      if (!sampledLens.canvas.parentNode) element.prepend(sampledLens.canvas);
-      if (sampledLens.render(source, geometry, options)) {
-        setRenderer("sampled");
-        return true;
-      }
-      sampledLens.canvas.remove();
-      return false;
-    }
-
-    if (!preferLive && sample()) {
-      clearSvg();
-      return;
-    }
-    if (!content && !live) {
-      setRenderer("frost");
-      clearSvg();
+    if (supportsBackdrop && (mode === "auto" || mode === "backdrop")) {
+      const key = [width, height, Math.min(radius, width / 2, height / 2), bevel, curvature].join("/");
+      if (key !== geometry?.key) geometry = { ...lensGeometry(width, height, options), width, height, key };
+      svgLens ??= makeSvgLens(element);
+      const renderedOptions = options;
+      svgLens.render(geometry, options, (url) => {
+        if (options !== renderedOptions) return;
+        if (url) {
+          watchSource(null);
+          setRenderer("backdrop", url);
+        } else if (mode === "auto") {
+          renderViewport();
+        } else {
+          watchSource(null);
+          setRenderer("frost");
+        }
+      });
       return;
     }
 
-    const nextSvgMode = content ? "content" : "backdrop";
-    if (svgMode !== nextSvgMode) {
-      clearSvg();
-      svgLens = makeSvgLens(element, engine, nextSvgMode);
-      svgMode = nextSvgMode;
-      sampledLens?.canvas.remove();
+    clearSvg();
+    if (mode === "viewport" || mode === "auto") renderViewport();
+    else {
+      watchSource(null);
       setRenderer("frost");
     }
-    const renderedOptions = options;
-    svgLens.render(geometry, options, (url) => {
-      if (options !== renderedOptions) return;
-      if (url) {
-        sampledLens?.canvas.remove();
-        setRenderer(nextSvgMode, url);
-      } else if (!preferLive || !sample()) {
-        setRenderer("frost");
-      }
-    });
   }
 
   function resetLight() {
     pointer = undefined;
+    if (options.mode === "off") return;
     style("light-x", "");
     style("light-y", "");
   }
 
   function moveLight(event) {
-    if (!options.interactive || motion.matches || event.pointerType === "touch") return;
+    if (options.mode === "off" || !options.interactive || motion.matches || event.pointerType === "touch") return;
     pointer = { x: event.clientX, y: event.clientY };
     if (lightFrame !== null) return;
     lightFrame = view.requestAnimationFrame(() => {
@@ -158,42 +188,18 @@ export function liquidGlass(element, changes = {}) {
     });
   }
 
-  function watchSource(next) {
-    if (source === next) return;
-    if (source) {
-      observer.unobserve(source);
-      source.removeEventListener("load", schedule);
-      stopVideo?.();
-      stopVideo = undefined;
-    }
-    source = next;
-    if (source) {
-      observer.observe(source);
-      source.addEventListener("load", schedule);
-      if (source.localName === "video") stopVideo = watchVideo(source);
-      view.addEventListener("scroll", schedule, true);
-      view.addEventListener("resize", schedule);
-    } else {
-      view.removeEventListener("scroll", schedule, true);
-      view.removeEventListener("resize", schedule);
-    }
-  }
-
-  function watchVideo(video) {
-    const events = ["loadeddata", "seeked", "resize"];
-    for (const event of events) video.addEventListener(event, schedule);
-    function nextFrame() {
-      if (!solid.matches) schedule();
-      videoFrame = video.requestVideoFrameCallback(nextFrame);
-    }
-    let videoFrame = video.requestVideoFrameCallback?.(nextFrame);
-    return () => {
-      if (videoFrame !== undefined) video.cancelVideoFrameCallback(videoFrame);
-      for (const event of events) video.removeEventListener(event, schedule);
-    };
-  }
-
   function applyOptions() {
+    if (options.mode === "off") {
+      if (frame !== null) view.cancelAnimationFrame(frame);
+      frame = null;
+      pointer = undefined;
+      clearSvg();
+      watchSource(null);
+      restoreStyles();
+      element.classList.remove(material);
+      setRenderer("off");
+      return;
+    }
     element.classList.add(material);
     style("radius", options.radius + "px");
     style("blur", options.blur + "px");
@@ -203,8 +209,7 @@ export function liquidGlass(element, changes = {}) {
     style("edge", options.edgeHighlight);
     style("angle", options.lightAngle + "deg");
     if (!options.interactive) resetLight();
-    watchSource(options.refraction && ["auto", "backdrop", "sampled"].includes(options.mode)
-      ? options.backdrop : null);
+    if (activeRenderer === "off") setRenderer("frost");
     schedule();
   }
 
@@ -224,19 +229,17 @@ export function liquidGlass(element, changes = {}) {
       if (frame !== null) view.cancelAnimationFrame(frame);
       if (lightFrame !== null) view.cancelAnimationFrame(lightFrame);
       clearSvg();
-      sampledLens?.canvas.remove();
       watchSource(null);
       observer.disconnect();
       element.removeEventListener("pointermove", moveLight);
       element.removeEventListener("pointerleave", resetLight);
       motion.removeEventListener("change", resetLight);
       solid.removeEventListener("change", schedule);
-      for (const [name, [value, priority]] of originalStyles) {
-        element.style.setProperty(name, value, priority);
-      }
-      if (!hadClass) element.classList.remove(material);
+      restoreStyles();
+      if (hadClass) element.classList.add(material);
+      else element.classList.remove(material);
       instances.delete(element);
-      activeRenderer = "frost";
+      activeRenderer = "off";
     },
   };
 

@@ -24,57 +24,68 @@
   <main class="wrap" id="top">
     <section class="intro">
       <h1>Liquid glass, <em>in focus.</em></h1>
-      <p>Make an ordinary element refract light. Tune the optics and compare element, backdrop, and frosted glass.</p>
+      <p>Refract live HTML, text, and artwork as they scroll beneath a pinned glass bar.</p>
     </section>
 
-    <section class="workbench" id="playground" aria-label="Optics playground">
-      <div class="viewer">
-        <div class="viewer-bar">
-          <fieldset class="segmented" aria-label="Scene" id="scenes">
-            <legend class="visually-hidden">Scene</legend>
-            <label><input type="radio" name="scene" value="photo" checked><span>Photo</span></label>
-            <label><input type="radio" name="scene" value="grid"><span>Grid</span></label>
-            <label><input type="radio" name="scene" value="type"><span>Type</span></label>
-          </fieldset>
-          <span class="renderer" id="renderer" aria-live="polite"></span>
-        </div>
-        <div class="stage" id="stage" data-scene="photo">
-          <img id="photo" class="scene-art" src="./shore.jpg" alt="">
-          <img id="grid" class="scene-art" src="./grid.svg" alt="">
-          <img id="type" class="scene-art" src="./type.svg" alt="">
-          <div class="lens-frame" id="lens-frame">
-            <button type="button" class="lens" id="item" aria-label="Move lens" aria-describedby="move-help">
-            </button>
-            <span class="lens-label" aria-hidden="true">✦ &nbsp;Move lens</span>
-          </div>
-        </div>
-        <p class="viewer-note" id="move-help">Drag the lens or use the arrow keys when it’s focused.</p>
+    <section id="playground" data-detail="simple" aria-label="Optics playground">
+      <div class="playground-toolbar">
+        <fieldset class="segmented" id="detail">
+          <legend class="visually-hidden">Settings detail</legend>
+          <label><input type="radio" name="detail" value="simple" checked><span>Simple</span></label>
+          <label><input type="radio" name="detail" value="advanced"><span>Advanced</span></label>
+        </fieldset>
       </div>
 
-      <div class="inspector">
-        <div class="panel-header">
-          <h2>Optics</h2>
-          <button class="quiet" id="reset" type="button">Reset</button>
+      <div class="workbench" id="viewport-preview">
+        <div class="viewer">
+          <div class="viewer-bar">
+            <button class="quiet" id="viewport-scroll" type="button">Scroll scene</button>
+            <span class="renderer" id="viewport-status" aria-live="polite"></span>
+          </div>
+          <div class="viewport-stage">
+            <section class="viewport-scene" id="viewport-scene" tabindex="0" aria-label="Live scroll scene">
+              <div class="viewport-grid" aria-hidden="true"></div>
+              <div class="viewport-content">
+                <h2>Light bends.</h2>
+                <p>Live text and cards scroll under the pinned bar.</p>
+                <article>
+                  <h3>Try editing this card</h3>
+                  <label>Station name <input type="text" value="Coastline FM"></label>
+                </article>
+                <div class="viewport-artwork">
+                  <fieldset class="segmented" id="artwork-choice">
+                    <legend class="visually-hidden">Artwork in the live scene</legend>
+                    <label><input type="radio" name="artwork" value="photo" checked><span>Photo</span></label>
+                    <label><input type="radio" name="artwork" value="grid"><span>Grid</span></label>
+                    <label><input type="radio" name="artwork" value="type"><span>Type</span></label>
+                  </fieldset>
+                  <img id="viewport-art" src="./shore.jpg" alt="Rocky coast with waves">
+                </div>
+              </div>
+            </section>
+            <header class="viewport-bar">
+              <div class="viewport-lens" id="viewport-lens" aria-hidden="true"></div>
+              <strong>Live scroll</strong>
+              <button id="viewport-action" type="button">Count <span id="viewport-count">0</span></button>
+            </header>
+          </div>
+          <p class="viewer-note">Scroll the grid and text through the glass. The topbar stays interactive.</p>
         </div>
-        <label class="select-row" for="mode">Renderer</label>
-        <select id="mode">
-          <option value="auto" selected>Automatic</option>
-          <option value="content">Element content</option>
-          <option value="sampled">Image backdrop</option>
-          <option value="backdrop">Live page backdrop</option>
-          <option value="frost">Frosted glass</option>
-        </select>
-        <p class="renderer-note" id="renderer-note" hidden>The selected backdrop is unavailable. Showing frosted glass.</p>
-        <fieldset class="segmented presets" aria-label="Preset" id="presets">
-          <legend class="visually-hidden">Preset</legend>
-          <label><input type="radio" name="preset" value="clear" checked><span>Clear</span></label>
-          <label><input type="radio" name="preset" value="frost"><span>Frost</span></label>
-          <label><input type="radio" name="preset" value="prism"><span>Prism</span></label>
-        </fieldset>
-        <div class="slider-grid" id="sliders"></div>
-        <div class="toggle-row">
-          <label><input id="enabled" type="checkbox" checked> Glass on</label>
-          <label><input id="interactive" type="checkbox" checked> Pointer light</label>
+        <div class="inspector">
+          <div class="panel-header">
+            <h2>Live page optics</h2>
+            <button class="quiet" id="viewport-reset" type="button">Reset</button>
+          </div>
+          <label class="select-row" for="viewport-mode">Renderer</label>
+          <select id="viewport-mode">
+            <option value="auto">Automatic</option>
+            <option value="viewport">Viewport SVG</option>
+            <option value="backdrop">Native backdrop</option>
+            <option value="frost">Frosted glass</option>
+            <option value="off">Off</option>
+          </select>
+          <div class="slider-grid" id="viewport-sliders"></div>
+          <p class="renderer-note advanced-setting">The SVG filter is sized to the scroll pane. Its position stays fixed as the pane scrolls.</p>
         </div>
       </div>
     </section>
@@ -91,8 +102,19 @@
             <label><input type="radio" name="control" value="segmented"><span>Segmented</span></label>
             <label><input type="radio" name="control" value="media"><span>Media</span></label>
           </fieldset>
+          <div class="renderer-control">
+            <label for="control-renderer">Renderer</label>
+            <select id="control-renderer" aria-describedby="control-renderer-status">
+              <option value="auto">Automatic</option>
+              <option value="viewport">Viewport SVG</option>
+              <option value="backdrop">Native backdrop</option>
+              <option value="frost">Frosted glass</option>
+              <option value="off">Off</option>
+            </select>
+          </div>
         </div>
         <div class="native-stage" id="control-preview" data-control="action"></div>
+        <p class="renderer-note" id="control-renderer-status" aria-live="polite"></p>
         <div class="code-toolbar control-code-bar">
           <fieldset class="segmented" id="control-code-selector">
             <legend class="visually-hidden">Control source language</legend>
@@ -108,26 +130,33 @@
       </div>
     </section>
 
-    <article class="live-dom" id="live-dom">
-      <h3>Live HTML</h3>
-      <p>Select this text, then <a href="#usage">open the integration examples</a>.</p>
-    </article>
-
     <section class="usage" id="usage" aria-labelledby="usage-title">
       <div class="usage-intro">
-        <h2 id="usage-title">One core. Four entry points.</h2>
-        <p>Use the same options in plain JavaScript or bind them to your framework’s lifecycle.</p>
+        <h2 id="usage-title">Usage</h2>
+        <p id="usage-description">Configure the scroll pane with <code>viewportSource</code>.</p>
       </div>
       <div class="code-panel">
         <div class="code-toolbar">
-          <fieldset class="segmented" id="frameworks" aria-label="Example language">
-            <legend class="visually-hidden">Example language</legend>
+          <fieldset class="segmented" id="frameworks">
+            <legend class="visually-hidden">Usage example</legend>
             <label><input type="radio" name="framework" value="js" checked><span>JavaScript</span></label>
             <label><input type="radio" name="framework" value="angular"><span>Angular</span></label>
             <label><input type="radio" name="framework" value="react"><span>React</span></label>
             <label><input type="radio" name="framework" value="vue"><span>Vue</span></label>
           </fieldset>
-          <button class="quiet" id="copy" type="button">Copy</button>
+          <div class="usage-actions">
+            <div class="renderer-control">
+              <label for="usage-renderer">Renderer</label>
+              <select id="usage-renderer">
+                <option value="auto">Automatic</option>
+                <option value="viewport">Viewport SVG</option>
+                <option value="backdrop">Native backdrop</option>
+                <option value="frost">Frosted glass</option>
+                <option value="off">Off</option>
+              </select>
+            </div>
+            <button class="quiet" id="copy" type="button">Copy</button>
+          </div>
         </div>
         <pre tabindex="0"><code id="example"></code></pre>
       </div>

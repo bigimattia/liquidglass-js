@@ -44,13 +44,12 @@ test("strength changes reuse the displacement map and SVG graph", async () => {
   window.HTMLCanvasElement.prototype.toDataURL = () => "data:image/png;base64," + ++encodes;
   window.Image.prototype.decode = () => Promise.resolve();
   const { document } = window;
-  const lens = makeSvgLens(document.querySelector("div"), "blink", "content");
+  const lens = makeSvgLens(document.querySelector("div"));
   const settings = { radius: 108, bevel: 30, curvature: 2, chroma: 0, blur: 0, saturation: 1, edgeHighlight: .94 };
   const geometry = { ...lensGeometry(368, 122, settings), width: 368, height: 122, key: "large-capsule" };
   lens.render(geometry, { ...settings, refraction: 22 }, () => {});
   await new Promise(setImmediate);
   const filter = document.querySelector("filter");
-  assert(filter.querySelector('feComposite[operator="out"][in2="shape"]'));
   const displacement = filter.querySelector("feDisplacementMap");
   const previous = Number(displacement.getAttribute("scale"));
   lens.render(geometry, { ...settings, refraction: 48 }, () => {});
@@ -86,9 +85,13 @@ test("keep a single controller, validate updates atomically and restore author s
   window.close();
 });
 
-test("automatic selection prefers live refraction and falls back to a supplied image", async () => {
-  for (const [userAgent, expected] of [["Chrome/140.0", "backdrop"], ["Firefox/140.0", "sampled"], ["AppleWebKit/605.1.15", "sampled"]]) {
-    const { window } = new JSDOM("<img><div></div>", { pretendToBeVisual: true });
+test("automatic selection prefers native backdrop, then viewport, then frost", async () => {
+  for (const [userAgent, expected] of [
+    ["Chrome/140.0", "backdrop"], ["Firefox/140.0", "viewport"], ["AppleWebKit/605.1.15", "viewport"],
+  ]) {
+    const { window } = new JSDOM('<main id="feed" style="filter: blur(1px) !important"></main><button>Lens</button>', {
+      pretendToBeVisual: true,
+    });
     const { document } = window;
     Object.defineProperty(window.navigator, "userAgent", { value: userAgent });
     window.CSS = { supports: () => true };
@@ -100,34 +103,72 @@ test("automatic selection prefers live refraction and falls back to a supplied i
     window.matchMedia = () => new window.EventTarget();
     const bounds = { width: 60, height: 40, top: 0, left: 0, right: 60, bottom: 40 };
     window.HTMLElement.prototype.getBoundingClientRect = () => bounds;
-    window.HTMLCanvasElement.prototype.getContext = (kind) => {
-      if (kind !== "2d") return null;
-      const image = (width, height) => ({ data: new Uint8ClampedArray(width * height * 4) });
-      return { createImageData: image, getImageData: (_, __, w, h) => image(w, h),
-        putImageData() {}, clearRect() {}, save() {}, beginPath() {}, rect() {}, clip() {}, drawImage() {}, restore() {} };
-    };
-    window.HTMLCanvasElement.prototype.toDataURL = () => "data:image/png;base64,AA==";
+    for (const key of ["clientWidth", "offsetWidth", "clientHeight", "offsetHeight"]) {
+      Object.defineProperty(window.HTMLElement.prototype, key, { value: key.endsWith("Width") ? 60 : 40 });
+    }
+    let encodes = 0;
+    window.HTMLCanvasElement.prototype.getContext = () => ({
+      createImageData: (width, height) => ({ data: new Uint8ClampedArray(width * height * 4) }),
+      putImageData() {},
+    });
+    window.HTMLCanvasElement.prototype.toDataURL = () => "data:image/png;base64," + ++encodes;
     window.Image.prototype.decode = () => Promise.resolve();
-    const backdrop = document.querySelector("img");
-    backdrop.style.objectFit = "fill";
-    Object.defineProperties(backdrop, { complete: { value: true }, naturalWidth: { value: 60 }, naturalHeight: { value: 40 } });
-    const lens = document.querySelector("div");
-    Object.defineProperties(lens, { clientWidth: { value: 60 }, clientHeight: { value: 40 } });
+    const source = document.querySelector("main");
+    const lens = document.querySelector("button");
     const frame = () => new Promise((resolve) => window.requestAnimationFrame(() => setImmediate(resolve)));
-    const glass = liquidGlass(lens, { backdrop });
+    const glass = liquidGlass(lens, { viewportSource: "#feed" });
     try {
       await frame();
       assert.equal(glass.renderer, expected);
-      glass.update({ mode: "sampled" });
+      assert.equal(source.style.filter.includes("url("), expected === "viewport");
+
+      glass.update({ mode: "viewport", viewportSource: source });
       await frame();
-      assert.equal(glass.renderer, "sampled");
-      glass.update({ mode: "backdrop", backdrop: null });
+      assert.equal(glass.renderer, "viewport");
+      assert.match(source.style.filter, /^blur\(1px\) url\(/);
+      assert.equal(source.style.getPropertyPriority("filter"), "important");
+
+      const second = document.createElement("button");
+      lens.after(second);
+      const siblingGlass = liquidGlass(second, { mode: "viewport", viewportSource: source });
       await frame();
-      assert.equal(glass.renderer, expected === "backdrop" ? "backdrop" : "frost");
-      glass.update({ mode: "sampled" });
+      assert.equal(source.style.filter.match(/url\(/g).length, 2);
+      siblingGlass.destroy();
+      assert.equal(source.style.filter.match(/url\(/g).length, 1);
+
+      const mapCount = encodes;
+      glass.update({ chroma: .4 });
+      await frame();
+      assert.equal(document.querySelectorAll("feDisplacementMap").length, 3);
+      assert.equal(encodes, mapCount);
+
+      glass.update({ mode: "off" });
+      assert.equal(glass.renderer, "off");
+      assert(!lens.classList.contains("liquid-glass"));
+      assert.equal(lens.style.getPropertyValue("--liquid-glass-radius"), "");
+      assert.equal(source.style.filter, "blur(1px)");
+      assert.equal(source.style.getPropertyPriority("filter"), "important");
+      assert.equal(document.querySelector("filter"), null);
+
+      glass.update({ mode: "viewport", viewportSource: "[" });
       await frame();
       assert.equal(glass.renderer, "frost");
-      assert.equal(lens.querySelector("canvas"), null);
+      glass.update({ mode: "backdrop", viewportSource: source });
+      await frame();
+      assert.equal(glass.renderer, expected === "backdrop" ? "backdrop" : "frost");
+      assert.equal(source.style.filter, "blur(1px)");
+      glass.update({ mode: "auto", viewportSource: "#missing" });
+      await frame();
+      assert.equal(glass.renderer, expected === "backdrop" ? "backdrop" : "frost");
+
+      if (expected === "backdrop") {
+        let attempts = 0;
+        window.Image.prototype.decode = () => ++attempts === 1 ? Promise.reject() : Promise.resolve();
+        glass.update({ mode: "auto", viewportSource: source, radius: 7 });
+        await frame();
+        assert.equal(glass.renderer, "viewport");
+        assert.equal(attempts, 2);
+      }
     } finally {
       glass.destroy();
       window.close();

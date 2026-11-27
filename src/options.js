@@ -1,6 +1,6 @@
 const defaults = Object.freeze({
   mode: "auto",
-  backdrop: null,
+  viewportSource: null,
   radius: 24,
   blur: 2,
   refraction: 18,
@@ -40,18 +40,16 @@ export function resolveOptions(view, changes, current = defaults) {
       throw new RangeError("Invalid liquidGlass option: " + key);
     }
   }
-  if (!["auto", "content", "backdrop", "sampled", "frost"].includes(options.mode)) {
-    throw new TypeError('mode must be "auto", "content", "backdrop", "sampled", or "frost"');
+  if (!["auto", "viewport", "backdrop", "frost", "off"].includes(options.mode)) {
+    throw new TypeError('mode must be "auto", "viewport", "backdrop", "frost", or "off"');
   }
   if (typeof options.interactive !== "boolean") {
     throw new TypeError("interactive must be a boolean");
   }
-  const source = options.backdrop;
-  if (source !== null &&
-    (!(source instanceof view.HTMLImageElement || source instanceof view.HTMLCanvasElement ||
-      source instanceof view.HTMLVideoElement) ||
-      source.ownerDocument !== view.document)) {
-    throw new TypeError("backdrop must be an image, canvas, or video from the same document, or null");
+  const source = options.viewportSource;
+  if (source !== null && typeof source !== "string" &&
+    (!(source instanceof view.HTMLElement) || source.ownerDocument !== view.document)) {
+    throw new TypeError("viewportSource must be a selector, a same-document HTML element, or null");
   }
   return options;
 }

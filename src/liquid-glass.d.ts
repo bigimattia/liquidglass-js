@@ -1,11 +1,11 @@
-export type LiquidGlassMode = "auto" | "content" | "backdrop" | "sampled" | "frost";
-export type LiquidGlassRenderer = "content" | "backdrop" | "sampled" | "frost";
+export type LiquidGlassMode = "auto" | "viewport" | "backdrop" | "frost" | "off";
+export type LiquidGlassRenderer = "viewport" | "backdrop" | "frost" | "off";
 
 export interface LiquidGlassOptions {
-  /** Auto (default) prefers live backdrop refraction, then a supplied backdrop, then frost. */
+  /** Auto (default) tries native backdrop, viewport SVG, then frost. */
   mode?: LiquidGlassMode;
-  /** Optional image, canvas, or video displayed behind a lens in auto, sampled, or backdrop mode. */
-  backdrop?: HTMLImageElement | HTMLCanvasElement | HTMLVideoElement | null;
+  /** Viewport SVG source in auto or viewport mode. A selector resolves in the lens’s document or shadow root. */
+  viewportSource?: string | HTMLElement | null;
   /** Uniform corner radius in CSS pixels. Defaults to 24. */
   radius?: number;
   /** Blur in CSS pixels. Defaults to 2. */
@@ -37,7 +37,7 @@ export interface LiquidGlassController {
   readonly renderer: LiquidGlassRenderer;
   /** Merge changes, or reset omitted options to their defaults with replace. */
   update(options: LiquidGlassOptions, behavior?: { replace?: boolean }): void;
-  /** Resample an explicit backdrop after changing position or drawing new canvas content. */
+  /** Recheck the renderer and source geometry after changing their relative position. */
   refresh(): void;
   destroy(): void;
 }

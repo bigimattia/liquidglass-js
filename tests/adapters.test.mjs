@@ -87,7 +87,7 @@ test("Angular directive works with a standalone component and zoneless updates",
     selector: "glass-fixture",
     standalone: true,
     imports: [LiquidGlassDirective],
-    template: '<button [liquidGlass]="options()">Continue</button>',
+    template: '<main #feed>Scroll feed</main><button [liquidGlass]="{ mode: options().mode, radius: options().radius, viewportSource: feed }">Continue</button>',
   })(Sample);
 
   const target = host();
@@ -100,6 +100,28 @@ test("Angular directive works with a standalone component and zoneless updates",
     instance.instance.options.set({});
     await app.whenStable();
     assertLens(item, 24);
+
+    const source = target.querySelector("main");
+    window.HTMLCanvasElement.prototype.getContext = () => ({
+      createImageData: (width, height) => ({ data: new Uint8ClampedArray(width * height * 4) }),
+      putImageData() {},
+    });
+    window.HTMLCanvasElement.prototype.toDataURL = () => "data:image/png;base64,AA==";
+    window.Image.prototype.decode = () => Promise.resolve();
+    for (const element of [source, item]) {
+      for (const key of ["clientWidth", "offsetWidth", "clientHeight", "offsetHeight"]) {
+        Object.defineProperty(element, key, { value: 60 });
+      }
+      element.getBoundingClientRect = () => ({ x: 0, y: 0, top: 0, left: 0, width: 60, height: 60, right: 60, bottom: 60 });
+    }
+    instance.instance.options.set({ mode: "viewport" });
+    await app.whenStable();
+    await new Promise((resolve) => window.requestAnimationFrame(() => setImmediate(resolve)));
+    assert.match(source.style.filter, /url\(/);
+    instance.instance.options.set({ mode: "off" });
+    await app.whenStable();
+    assert.equal(source.style.filter, "");
+    assert(!item.classList.contains("liquid-glass"));
     instance.destroy();
     assert(!item.classList.contains("liquid-glass"));
   } finally {

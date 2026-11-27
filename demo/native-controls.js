@@ -1,14 +1,17 @@
 import { liquidGlass } from "../src/liquid-glass.js";
 import { bindCopy } from "./copy-code.js";
 
-const shell = "relative isolate overflow-hidden rounded-full shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white";
-const optics = "pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_25%_15%,#e8ffff9c,#6cc8db55_45%,#26627e66_80%,#a3efffb0)]";
-const mediaOptics = "pointer-events-none absolute inset-0";
-const lens = (classes = optics) => `<span data-lens class="${classes}" aria-hidden="true"></span>`;
+const shell = "relative isolate overflow-hidden rounded-full shadow-[0_5px_18px_#243c6538] ring-1 ring-inset ring-white/80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-indigo-800";
+const optics = "pointer-events-none absolute inset-0 bg-[linear-gradient(155deg,#ffffffeb,#ffffff32_38%,#6e87bf24_68%,#ffffffa6)]";
+const lensBox = "pointer-events-none absolute inset-0";
+const lens = (name) => `
+  <span data-glass-source="${name}" class="${optics}" aria-hidden="true"></span>
+  <span data-lens class="${lensBox}" aria-hidden="true"></span>`;
+const mediaLens = `<span data-lens class="${lensBox} bg-white/10" aria-hidden="true"></span>`;
 const mediaButton = (action, label, graphic) => `<button type="button" data-${action} aria-label="${label}"
-  class="${shell} grid size-10 shrink-0 cursor-pointer place-items-center border-0 bg-transparent text-white sm:size-12">
-  ${lens(mediaOptics)}
-  <span class="relative z-10 font-semibold [text-shadow:0_1px_6px_#031926]" aria-hidden="true">${graphic}</span>
+  class="${shell} grid size-10 shrink-0 cursor-pointer place-items-center border-0 bg-white/20 text-white hover:bg-white/35 active:scale-95 sm:size-12">
+  ${mediaLens}
+  <span class="relative z-10 font-semibold [text-shadow:0_1px_5px_#11253a]" aria-hidden="true">${graphic}</span>
 </button>`;
 
 function toggleSaved(root, signal) {
@@ -80,84 +83,91 @@ function bindMedia(root, signal) {
 const examples = {
   action: {
     html: `<button type="button" data-save aria-pressed="false"
-  class="${shell} inline-grid min-h-14 min-w-44 cursor-pointer place-items-center border-0 bg-cyan-700/30 px-6 font-semibold text-white active:scale-95 aria-pressed:bg-emerald-700/70">
-  ${lens()}
-  <span data-label class="relative z-10 [text-shadow:0_1px_6px_#031926]">Save preset</span>
+  class="${shell} group inline-flex min-h-14 min-w-48 cursor-pointer items-center justify-center gap-2.5 border-0 bg-white/36 px-6 font-semibold tracking-tight text-slate-950 transition duration-200 ease-out hover:bg-white/65 active:scale-95 aria-pressed:bg-emerald-100/75 motion-reduce:transition-none">
+  ${lens("action")}
+  <span class="relative z-10 grid size-6 shrink-0 place-items-center text-indigo-700 group-aria-pressed:text-emerald-800" aria-hidden="true">
+    <span class="group-aria-pressed:hidden">＋</span>
+    <span class="hidden group-aria-pressed:block">✓</span>
+  </span>
+  <span data-label class="relative z-10">Save preset</span>
 </button>`,
-    options: { mode: "content", radius: 40, refraction: 17, bevel: 22 },
+    options: { viewportSource: "[data-glass-source=action]", radius: 40, refraction: 17, bevel: 22 },
     enhance: toggleSaved,
   },
   switch: {
-    html: `<label class="group inline-flex cursor-pointer items-center gap-4 font-semibold text-white">
+    html: `<label class="group inline-flex cursor-pointer items-center gap-3 rounded-3xl bg-white/38 px-4 py-3 font-medium text-slate-950 shadow-[0_8px_24px_#36574626] ring-1 ring-inset ring-white/65">
   <input type="checkbox" role="switch" class="peer sr-only" />
-  <span class="relative h-11 w-20 rounded-full bg-slate-800/70 shadow-inner transition-colors peer-checked:bg-emerald-700 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-white" aria-hidden="true">
-    <span class="${shell} absolute! top-1 left-1 size-9 bg-cyan-200/40 transition-transform group-has-checked:translate-x-9 motion-reduce:transition-none">
-      ${lens()}
+  <span class="relative h-9 w-16 rounded-full bg-slate-500/35 shadow-inner ring-1 ring-inset ring-white/55 transition-colors peer-checked:bg-emerald-500 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-indigo-800 motion-reduce:transition-none" aria-hidden="true">
+    <span class="${shell} absolute! top-1 left-1 size-7 bg-white/75 transition-transform duration-300 ease-[cubic-bezier(.2,.7,.25,1.2)] group-has-checked:translate-x-7 motion-reduce:transition-none">
+      ${lens("switch")}
     </span>
   </span>
   <span>Reflections</span>
 </label>`,
-    options: { mode: "content", radius: 24, refraction: 11, bevel: 14 },
+    options: { viewportSource: "[data-glass-source=switch]", radius: 24, refraction: 11, bevel: 14 },
   },
   slider: {
-    html: `<div class="w-full max-w-sm font-semibold text-white [text-shadow:0_1px_6px_#031926]">
+    html: `<div class="w-full max-w-sm rounded-3xl border border-white/60 bg-white/40 px-5 py-4 font-medium text-slate-950 shadow-[0_10px_28px_#39276a32]">
   <label class="block">
     <span class="flex justify-between">Volume <output aria-hidden="true">62%</output></span>
-    <span data-track class="relative mt-2 block h-10 rounded-full [--level:.62] focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-white">
-      <span class="pointer-events-none absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-[linear-gradient(90deg,#90edeb_calc(var(--level)*100%),#3d5d73_0)]" aria-hidden="true"></span>
-      <span class="${shell} pointer-events-none absolute! top-1/2 left-[calc(var(--level)*(100%-2rem)+1rem)] size-8 -translate-x-1/2 -translate-y-1/2 bg-cyan-200/40" aria-hidden="true">
-        ${lens()}
+    <span data-track class="relative mt-2 block h-10 rounded-full [--level:.62] focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-indigo-800">
+      <span class="pointer-events-none absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-[linear-gradient(90deg,#6847cf_calc(var(--level)*100%),#af9fca_0)]" aria-hidden="true"></span>
+      <span class="${shell} pointer-events-none absolute! top-1/2 left-[calc(var(--level)*(100%-2.5rem)+1.25rem)] h-6 w-10 -translate-x-1/2 -translate-y-1/2 bg-white/65" aria-hidden="true">
+        ${lens("slider")}
       </span>
-      <input type="range" min="0" max="100" value="62" class="absolute inset-0 m-0 size-full cursor-pointer appearance-none opacity-0 [&::-webkit-slider-thumb]:size-8 [&::-webkit-slider-thumb]:appearance-none [&::-moz-range-thumb]:size-8" />
+      <input type="range" min="0" max="100" value="62" class="absolute inset-0 m-0 size-full cursor-pointer appearance-none opacity-0 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-10 [&::-webkit-slider-thumb]:appearance-none [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:w-10" />
     </span>
   </label>
 </div>`,
-    options: { mode: "content", radius: 18, refraction: 10, bevel: 11 },
+    options: { viewportSource: "[data-glass-source=slider]", radius: 18, refraction: 10, bevel: 11 },
     enhance: syncVolume,
   },
   segmented: {
-    html: `<fieldset class="relative m-0 grid min-w-0 grid-cols-3 rounded-full border border-white/40 bg-slate-900/65 p-1 text-sm font-semibold text-white [--index:0] has-[[value=week]:checked]:[--index:1] has-[[value=month]:checked]:[--index:2]">
+    html: `<fieldset class="relative m-0 grid min-w-0 grid-cols-3 rounded-full border border-white/65 bg-slate-600/15 p-1 shadow-[0_10px_28px_#25486430] text-sm font-medium text-slate-950 [--index:0] has-[[value=week]:checked]:[--index:1] has-[[value=month]:checked]:[--index:2]">
   <legend class="sr-only">Time range</legend>
-  <span class="${shell} pointer-events-none absolute! inset-y-1 left-1 w-[calc((100%-0.5rem)/3)] translate-x-[calc(var(--index)*100%)] bg-cyan-200/40 transition-transform motion-reduce:transition-none" aria-hidden="true">
-    ${lens()}
+  <span class="${shell} pointer-events-none absolute! inset-y-1 left-1 w-[calc((100%-0.5rem)/3)] translate-x-[calc(var(--index)*100%)] bg-white/75 transition-transform duration-300 ease-[cubic-bezier(.2,.7,.25,1.15)] motion-reduce:transition-none" aria-hidden="true">
+    ${lens("segmented")}
   </span>
-  <label class="relative cursor-pointer rounded-full px-4 py-2 text-center focus-within:outline-2"><input class="sr-only" type="radio" name="period" value="day" checked />Day</label>
-  <label class="relative cursor-pointer rounded-full px-4 py-2 text-center focus-within:outline-2"><input class="sr-only" type="radio" name="period" value="week" />Week</label>
-  <label class="relative cursor-pointer rounded-full px-4 py-2 text-center focus-within:outline-2"><input class="sr-only" type="radio" name="period" value="month" />Month</label>
+  <label class="relative cursor-pointer rounded-full px-4 py-2 text-center focus-within:outline-2 focus-within:outline-indigo-800"><input class="sr-only" type="radio" name="period" value="day" checked />Day</label>
+  <label class="relative cursor-pointer rounded-full px-4 py-2 text-center focus-within:outline-2 focus-within:outline-indigo-800"><input class="sr-only" type="radio" name="period" value="week" />Week</label>
+  <label class="relative cursor-pointer rounded-full px-4 py-2 text-center focus-within:outline-2 focus-within:outline-indigo-800"><input class="sr-only" type="radio" name="period" value="month" />Month</label>
 </fieldset>`,
-    options: { mode: "content", radius: 28, refraction: 13, bevel: 16 },
+    options: { viewportSource: "[data-glass-source=segmented]", radius: 28, refraction: 13, bevel: 16 },
   },
   media: {
-    html: `<div class="relative aspect-video w-full max-w-2xl overflow-hidden rounded-2xl bg-slate-950">
+    html: `<div class="relative aspect-video w-full max-w-2xl overflow-hidden rounded-2xl bg-slate-950 shadow-2xl ring-1 ring-white/30">
   <video src="./shore-motion.mp4" poster="./shore.jpg" muted playsinline preload="metadata"
     class="absolute inset-0 size-full object-cover" aria-label="Animated shoreline"></video>
-  <div class="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-2 bg-linear-to-t from-black/70 to-transparent p-3 pt-8 sm:flex-nowrap">
+  <div class="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-2 bg-linear-to-t from-slate-950/75 to-transparent p-3 pt-8 sm:flex-nowrap">
     ${mediaButton("rewind", "Back 2 seconds", "−2")}
     ${mediaButton("play", "Play", "<span data-icon>▶</span>")}
     ${mediaButton("forward", "Forward 2 seconds", "+2")}
     <div class="${shell} flex h-10 min-w-24 flex-1 items-center px-3 sm:h-12">
-      ${lens(mediaOptics)}
+      ${mediaLens}
       <input data-seek type="range" aria-label="Seek video" min="0" max="0" step="0.01" disabled
         class="relative z-10 m-0 w-full cursor-pointer accent-white focus-visible:outline-2 focus-visible:outline-white" />
     </div>
   </div>
   <p data-media-error role="status" hidden class="absolute inset-x-3 top-3 rounded-lg bg-black/75 p-2 text-sm text-white">Unable to play the video.</p>
 </div>`,
-    options: { mode: "sampled", radius: 24, refraction: 13, bevel: 14 },
+    options: { radius: 24, refraction: 13, bevel: 14 },
     enhance: bindMedia,
-    video: true,
   },
 };
 
-function optionsFor(example) {
-  return { ...example.options, blur: 0, tint: .07, glow: .14, edgeHighlight: .95 };
+function optionsFor(example, mode) {
+  const { viewportSource, ...optics } = example.options;
+  return {
+    mode, ...optics, blur: mode === "frost" ? 6 : 2, tint: .03, glow: .12, edgeHighlight: .9,
+    ...((mode === "auto" || mode === "viewport") && viewportSource ? { viewportSource } : {}),
+  };
 }
 
-function sourceCode(example, framework) {
-  const { html, enhance, video } = example;
+function sourceCode(example, framework, settings) {
+  const { html, enhance } = example;
   const template = (markup) => markup.replace(/^/gm, "    ");
   const style = 'import "@ikeofficial/liquid-glass-js/style.css";';
-  const options = JSON.stringify(optionsFor(example)).replace(/"([a-zA-Z]+)":/g, "$1: ").replace(/,/g, ", ");
+  const options = JSON.stringify(settings).replace(/"([a-zA-Z]+)":/g, "$1: ").replace(/,/g, ", ");
   const behavior = enhance ? "\n" + enhance.toString() + "\n" : "";
   const typedBehavior = behavior.replace("(root, signal)", "(root: HTMLElement, signal: AbortSignal)")
     .replace('(time) =>', '(time: number) =>')
@@ -176,7 +186,7 @@ const root = document.querySelector("#glass-example");
 const events = new AbortController();
 const options = ${options};
 const lenses = [...root.querySelectorAll("[data-lens]")].map((element) =>
-  liquidGlass(element, { ...options${video ? ', backdrop: root.querySelector("video")' : ""} }),
+  liquidGlass(element, { ...options }),
 );${attach.trimEnd().replace(/\n    /g, "\n")}
 
 export function dispose() {
@@ -187,8 +197,7 @@ export function dispose() {
   if (framework === "angular") {
     // Angular template bindings use single-quoted string literals inside the attribute.
     const binding = options.replaceAll('"', "'");
-    const markup = html.replaceAll("data-lens", `[liquidGlass]="${video ? binding.slice(0, -1) + ", backdrop: media }" : "options"}"`)
-      .replace("<video ", "<video #media ");
+    const markup = html.replaceAll("data-lens", '[liquidGlass]="options"');
     return `import { Component${enhance ? ", afterNextRender, DestroyRef, ElementRef, inject" : ""} } from "@angular/core";
 import { LiquidGlassDirective } from "@ikeofficial/liquid-glass-js/angular";
 import type { LiquidGlassOptions } from "@ikeofficial/liquid-glass-js";
@@ -214,14 +223,13 @@ ${enhance ? `
 ` : ""}}`;
   }
   if (framework === "vue") {
-    const markup = html.replaceAll("data-lens", `v-liquid-glass="${video ? "{ ...options, backdrop: media }" : "options"}"`)
-      .replace("<video ", '<video ref="media" ').replace(/^<([a-z]+)/, enhance ? '<$1 ref="root"' : "<$1");
+    const markup = html.replaceAll("data-lens", 'v-liquid-glass="options"').replace(/^<([a-z]+)/, enhance ? '<$1 ref="root"' : "<$1");
     return `<script setup lang="ts">
 ${enhance ? 'import { onMounted, onBeforeUnmount, ref } from "vue";\n' : ""}import { vLiquidGlass } from "@ikeofficial/liquid-glass-js/vue";
 import type { LiquidGlassOptions } from "@ikeofficial/liquid-glass-js";
 ${style}
 ${typedBehavior}
-const options: LiquidGlassOptions = ${options};${video ? '\nconst media = ref<HTMLVideoElement | null>(null);' : ""}
+const options: LiquidGlassOptions = ${options};
 ${enhance ? `
 const root = ref<HTMLElement | null>(null);
 const events = new AbortController();
@@ -237,16 +245,15 @@ ${template(markup)}
   let number = 0;
   const markup = html.replaceAll("data-lens", () => `ref={glass${++number}}`)
     .replaceAll("class=", "className=").replace('value="62"', 'defaultValue="62"')
-    .replace(/ checked\b/g, " defaultChecked").replace("playsinline", "playsInline")
-    .replace("<video ", "<video ref={setMedia} ");
+    .replace(/ checked\b/g, " defaultChecked").replace("playsinline", "playsInline");
   const hooks = Array.from({ length: number }, (_, index) =>
     `  const glass${index + 1} = useLiquidGlass<HTMLSpanElement>(options);`).join("\n");
   return `import { useLiquidGlass } from "@ikeofficial/liquid-glass-js/react";
-${enhance ? `import { useEffect, useRef${video ? ", useState" : ""} } from "react";\n` : ""}import type { LiquidGlassOptions } from "@ikeofficial/liquid-glass-js";
+${enhance ? `import { useEffect, useRef } from "react";\n` : ""}import type { LiquidGlassOptions } from "@ikeofficial/liquid-glass-js";
 ${style}
 ${typedBehavior}
 export function GlassControl() {
-${video ? "  const [media, setMedia] = useState<HTMLVideoElement | null>(null);\n" : ""}  const options: LiquidGlassOptions = { ...${options}${video ? ", backdrop: media" : ""} };
+  const options: LiquidGlassOptions = ${options};
 ${hooks}
 ${enhance ? `
   const container = useRef<HTMLDivElement>(null);
@@ -271,6 +278,8 @@ export function mountControlShowcase() {
   const preview = document.getElementById("control-preview");
   const output = document.getElementById("control-code");
   const selector = document.getElementById("control-selector");
+  const renderer = document.getElementById("control-renderer");
+  const status = document.getElementById("control-renderer-status");
   const language = document.getElementById("control-code-selector");
   let controllers = [];
   let events;
@@ -280,7 +289,18 @@ export function mountControlShowcase() {
   }
 
   function displaySource() {
-    output.textContent = sourceCode(selectedExample(), language.querySelector(":checked").value);
+    output.textContent = sourceCode(
+      selectedExample(), language.querySelector(":checked").value,
+      optionsFor(selectedExample(), renderer.value),
+    );
+  }
+
+  function showRenderer() {
+    const active = new Set(controllers.map((glass) => glass.renderer));
+    const labels = [...renderer.options].filter(({ value }) => active.has(value)).map(({ text }) => text);
+    const note = renderer.value === "viewport" && !selectedExample().options.viewportSource
+      ? " This example has no viewport source." : "";
+    status.textContent = "Rendering with " + labels.join(", ") + "." + note;
   }
 
   function select() {
@@ -290,14 +310,24 @@ export function mountControlShowcase() {
     preview.querySelector("video")?.pause();
     preview.dataset.control = selector.querySelector(":checked").value;
     preview.innerHTML = example.html;
-    const options = { ...optionsFor(example), backdrop: preview.querySelector("video") };
-    controllers = Array.from(preview.querySelectorAll("[data-lens]"), (element) => liquidGlass(element, options));
     events = new AbortController();
+    const options = optionsFor(example, renderer.value);
+    controllers = Array.from(preview.querySelectorAll("[data-lens]"), (element) => {
+      element.addEventListener("liquidglass:rendererchange", showRenderer, { signal: events.signal });
+      return liquidGlass(element, options);
+    });
     example.enhance?.(preview, events.signal);
+    showRenderer();
     displaySource();
   }
 
   selector.addEventListener("change", select);
+  renderer.addEventListener("change", () => {
+    const options = optionsFor(selectedExample(), renderer.value);
+    controllers.forEach((glass) => glass.update(options, { replace: true }));
+    showRenderer();
+    displaySource();
+  });
   language.addEventListener("change", displaySource);
   bindCopy(document.getElementById("copy-control"), output);
   select();

@@ -1,6 +1,5 @@
 :where(.liquid-glass) {
   --liquid-glass-lens: ;
-  --liquid-glass-content-filter: none;
   --liquid-glass-overlay-filter: var(--liquid-glass-lens)
     blur(var(--liquid-glass-blur, 2px)) saturate(var(--liquid-glass-saturation, 1.35));
   --liquid-glass-light-x: 25%;
@@ -8,7 +7,6 @@
   position: relative;
   z-index: 0;
   border-radius: var(--liquid-glass-radius, 24px);
-  filter: var(--liquid-glass-content-filter);
 }
 
 :where(.liquid-glass)::before,
@@ -32,7 +30,7 @@
 
 :where(.liquid-glass)::after {
   padding: 1px;
-  opacity: calc(var(--liquid-glass-edge, .85) * var(--liquid-glass-css-rim, 1));
+  opacity: var(--liquid-glass-edge, .85);
   background:
     radial-gradient(ellipse at var(--liquid-glass-light-x) var(--liquid-glass-light-y),
       rgb(255 255 255 / .95), transparent 64%),
@@ -46,21 +44,7 @@
   box-shadow: inset 0 0 18px rgb(255 255 255 / .17);
 }
 
-:where(.liquid-glass > .liquid-glass-backdrop) {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -2;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
-  :where(.liquid-glass) {
-    filter: none;
-  }
-
   :where(.liquid-glass)::before {
     background: var(--liquid-glass-solid, Canvas);
     -webkit-backdrop-filter: none;
@@ -69,9 +53,5 @@
 
   :where(.liquid-glass)::after {
     background: currentColor;
-  }
-
-  :where(.liquid-glass > .liquid-glass-backdrop) {
-    visibility: hidden;
   }
 }

@@ -33,7 +33,7 @@ const server = createServer(async (request, response) => {
     response.writeHead(302, { Location: "/demo/" }).end();
     return;
   }
-  const file = path === "/demo/" ? "/demo/index.html" : path;
+  const file = path.endsWith("/") ? path + "index.html" : path;
   const entry = files.get(file);
   if (!entry) {
     response.writeHead(404).end();
