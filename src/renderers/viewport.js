@@ -1,4 +1,4 @@
-import { lensGeometry } from "../optics.js";
+import { viewportGeometry } from "../optics.js";
 import {
   appendRefraction, attrs, filterId, filterRoot, makeMapRequest, setDisplacement, svg,
 } from "./svg.js";
@@ -84,10 +84,10 @@ export function makeViewportLens(element, source, engine) {
       applied(false);
       return;
     }
-    if (!mapRequest.url) return;
+    if (!mapRequest.url || mapRequest.key !== geometry.key) return;
     const { viewport, lens } = bounds;
-    const { refraction, chroma } = options;
-    const key = [...Object.values(viewport), ...Object.values(lens), mapRequest.url, refraction, chroma].join("/");
+    const { chroma } = options;
+    const key = [...Object.values(viewport), ...Object.values(lens), geometry.key, chroma].join("/");
     if (key === lastPaint) {
       applied(true);
       return;
@@ -112,7 +112,8 @@ export function makeViewportLens(element, source, engine) {
     attrs(graph, viewport);
     attrs(flood, viewport);
     attrs(map, { ...lens, href: mapRequest.url });
-    setDisplacement(displacements, 2 * refraction, chroma);
+    // The strongest color channel must obey the same bound as a clear lens.
+    setDisplacement(displacements, 2 * geometry.strength / (1 + chroma), chroma);
     if (webkit) graph.id = filterId();
     installFilter(source, owner, graph.id);
     if (webkit && newImage) {
@@ -132,10 +133,10 @@ export function makeViewportLens(element, source, engine) {
       const bounds = measure(element, source);
       if (bounds) {
         const { width, height } = bounds.lens;
-        const { radius, bevel, curvature } = options;
-        const key = [width, height, Math.min(radius, width / 2, height / 2), bevel, curvature].join("/");
+        const { radius, bevel, curvature, refraction } = options;
+        const key = [width, height, Math.min(radius, width / 2, height / 2), bevel, curvature, refraction].join("/");
         if (key !== geometry?.key) {
-          geometry = { ...lensGeometry(width, height, options), key };
+          geometry = { ...viewportGeometry(width, height, options), key };
           mapRequest.requestMap(geometry);
         }
       }

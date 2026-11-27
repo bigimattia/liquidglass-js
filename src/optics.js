@@ -21,7 +21,16 @@ function refractionProfile(curvature) {
   return profile;
 }
 
-export function lensGeometry(width, height, { radius, bevel: bevelSize, curvature, lightAngle = 145 }, density = 1) {
+function bevelBend(bevel, curvature) {
+  const profile = refractionProfile(curvature);
+  return (depth) => {
+    const sample = Math.min(profileSteps, Math.max(0, depth) * profileSteps / bevel);
+    const first = Math.floor(sample);
+    return profile[first] + (profile[Math.min(profileSteps, first + 1)] - profile[first]) * (sample - first);
+  };
+}
+
+export function lensGeometry(width, height, { radius, bevel: bevelSize, curvature, lightAngle = 145 }, density = 1, viewportBend) {
   const resolution = Math.min(density, 512 / Math.max(width, height));
   const columns = Math.max(1, Math.round(width * resolution));
   const rows = Math.max(1, Math.round(height * resolution));
@@ -35,7 +44,7 @@ export function lensGeometry(width, height, { radius, bevel: bevelSize, curvatur
   const pixelWidth = width / columns;
   const pixelHeight = height / rows;
   const feather = Math.max(pixelWidth, pixelHeight);
-  const profile = refractionProfile(curvature);
+  const bendAt = viewportBend ?? bevelBend(bevel, curvature);
   // Match CSS gradient angles. The highlight faces up and left at 145°.
   const angle = lightAngle * Math.PI / 180;
   const lightX = -Math.sin(angle);
@@ -58,9 +67,7 @@ export function lensGeometry(width, height, { radius, bevel: bevelSize, curvatur
       const normalX = right === col ? 0 : length ? dx / length : Number(cornerX > cornerY);
       const normalY = bottom === row ? 0 : length ? dy / length : Number(cornerY > cornerX);
       const inset = Math.max(0, depth);
-      const sample = Math.min(profileSteps, inset * profileSteps / bevel);
-      const first = Math.floor(sample);
-      const bend = profile[first] + (profile[Math.min(profileSteps, first + 1)] - profile[first]) * (sample - first);
+      const bend = bendAt(depth, Math.max(-cornerX, -cornerY));
       const line = Math.max(0, 1 - inset / 2.1);
       const shoulder = Math.max(0, 1 - inset / 10);
       const shine = 255 * (0.78 * line ** 2 + 0.22 * shoulder ** 2);
@@ -84,6 +91,39 @@ export function lensGeometry(width, height, { radius, bevel: bevelSize, curvatur
   }
 
   return { columns, rows, offsets, coverage, highlights };
+}
+
+function smoothstep(value) {
+  const t = Math.max(0, Math.min(1, value));
+  return t * t * (3 - 2 * t);
+}
+
+export function viewportGeometry(width, height, options) {
+  const { radius, refraction, bevel, curvature } = options;
+  const maxBand = Math.min(bevel, width / 2, height / 2);
+  const band = maxBand * (0.45 + 0.55 * Math.min(1, 0.625 * (refraction / maxBand)));
+  const cornerBand = Math.min(radius, band);
+  const extension = band - cornerBand;
+  const riseFraction = 0.14 + 0.035 * curvature;
+  // Smoothstep's maximum slope is 1.5. Leave headroom for map quantization.
+  const peakPerPixel = 0.8 * (1 - riseFraction) / 1.5;
+  const strength = Math.min(refraction, band * peakPerPixel);
+
+  function bend(depth, straightRun) {
+    if (depth <= 0 || depth >= band || !strength) return 0;
+    // Extend the band along the flats. At a nearest-edge tie, the band
+    // has already tapered to zero, so switching normals cannot make a seam.
+    const localBand = extension
+      ? cornerBand + extension * smoothstep(straightRun / (2 * extension))
+      : band;
+    if (depth >= localBand) return 0;
+    const rise = localBand * riseFraction;
+    const peak = Math.min(strength, localBand * peakPerPixel);
+    return peak / strength * smoothstep(depth / rise) *
+      (1 - smoothstep((depth - rise) / (localBand - rise)));
+  }
+
+  return { ...lensGeometry(width, height, options, 1, bend), strength };
 }
 
 export function lensStrength(refraction, chroma, width, height) {

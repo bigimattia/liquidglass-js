@@ -40,12 +40,12 @@ export function filterId() {
   return "liquid-glass-" + ++nextId;
 }
 
-export function getMap(document, geometry, feather = false) {
+export function getMap(document, geometry, viewport = false) {
   if (!documentMaps.has(document)) {
     documentMaps.set(document, { entries: new Map(), canvas: document.createElement("canvas") });
   }
   const { entries, canvas } = documentMaps.get(document);
-  const key = (feather ? "viewport/" : "backdrop/") + geometry.key;
+  const key = (viewport ? "viewport/" : "backdrop/") + geometry.key;
   let entry = entries.get(key);
   if (entry) {
     entries.delete(key);
@@ -53,7 +53,7 @@ export function getMap(document, geometry, feather = false) {
     return entry;
   }
 
-  const { columns, rows, offsets, coverage } = geometry;
+  const { columns, rows, offsets } = geometry;
   canvas.width = columns;
   canvas.height = rows;
   const context = canvas.getContext("2d");
@@ -61,11 +61,10 @@ export function getMap(document, geometry, feather = false) {
   if (context) {
     const image = context.createImageData(columns, rows);
     const pixels = image.data;
-    for (let index = 0; index < coverage.length; index++) {
+    const neutral = viewport ? 128 : 127.5;
+    const weight = viewport ? 127 : 127.5;
+    for (let index = 0; index < columns * rows; index++) {
       const pixel = 4 * index;
-      // Fade the displacement itself so the viewport map stays opaque at the rim.
-      const weight = feather ? 127 * coverage[index] / 255 : 127.5;
-      const neutral = feather ? 128 : 127.5;
       pixels[pixel] = neutral + weight * offsets[2 * index];
       pixels[pixel + 1] = neutral + weight * offsets[2 * index + 1];
       pixels[pixel + 3] = 255;
@@ -116,24 +115,26 @@ export function setDisplacement(nodes, scale, chroma) {
   }
 }
 
-export function makeMapRequest(document, feather, repaint) {
+export function makeMapRequest(document, viewport, repaint) {
   let requestedKey;
   let request = 0;
-  const state = { url: null, failed: false, requestMap, cancel };
+  const state = { url: null, key: null, failed: false, requestMap, cancel };
 
   function requestMap(geometry) {
     if (requestedKey === geometry.key) return;
     requestedKey = geometry.key;
     state.failed = false;
     const ticket = ++request;
-    const map = getMap(document, geometry, feather);
+    const map = getMap(document, geometry, viewport);
     if (map.url) {
       state.url = map.url;
+      state.key = geometry.key;
       return;
     }
     map.ready.then((url) => {
       if (ticket !== request) return;
       state.url = url;
+      state.key = geometry.key;
       state.failed = !url;
       repaint();
     });

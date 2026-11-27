@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { JSDOM } from "jsdom";
 import { liquidGlass } from "@ikeofficial/liquid-glass-js";
-import { lensGeometry, lensStrength } from "../src/optics.js";
+import { lensGeometry, lensStrength, viewportGeometry } from "../src/optics.js";
 import { makeSvgLens } from "../src/renderers/svg.js";
 
 test("the bevel bends inward, mirrors across the lens, and leaves the center flat", () => {
@@ -32,6 +32,38 @@ test("the reported wide capsule has a symmetric, antialiased mask and bounded di
   assert(offsets.every((offset) => Number.isFinite(offset) && Math.abs(offset) <= 1));
   assert.equal(lensStrength(48, 0, 368, 122), 48);
   assert(lensStrength(62, .8, 100, 54) * 1.8 < 27);
+});
+
+test("the encoded viewport warp preserves local orientation at high strength", () => {
+  for (const [width, height, radius] of [[807, 96, 22], [288, 96, 22], [110, 54, 27], [288, 96, 0]]) {
+    const { columns, rows, offsets, strength } = viewportGeometry(width, height, {
+      radius, refraction: 51, bevel: 32, curvature: 2,
+    });
+    assert(strength > 10);
+    const samples = Float64Array.from(offsets, (offset, index) => {
+      const cell = Math.floor(index / 2);
+      const horizontal = index % 2 === 0;
+      const position = horizontal ? cell % columns * width / columns : Math.floor(cell / columns) * height / rows;
+      const encoded = Math.round(128 + 127 * offset);
+      return position + 2 * strength * (encoded / 255 - 0.5);
+    });
+    function determinant(a, b, c) {
+      return (samples[b] - samples[a]) * (samples[c + 1] - samples[a + 1])
+        - (samples[b + 1] - samples[a + 1]) * (samples[c] - samples[a]);
+    }
+    for (let y = 0; y < rows - 1; y++) {
+      for (let x = 0; x < columns - 1; x++) {
+        const topLeft = 2 * (y * columns + x);
+        const topRight = topLeft + 2;
+        const bottomLeft = topLeft + 2 * columns;
+        const bottomRight = bottomLeft + 2;
+        assert(determinant(topLeft, topRight, bottomLeft) > 0);
+        assert(determinant(topRight, bottomRight, topLeft) > 0);
+        assert(determinant(bottomLeft, topLeft, bottomRight) > 0);
+        assert(determinant(bottomRight, bottomLeft, topRight) > 0);
+      }
+    }
+  }
 });
 
 test("strength changes reuse the displacement map and SVG graph", async () => {
