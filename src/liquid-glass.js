@@ -59,7 +59,6 @@ export function liquidGlass(element, changes = {}) {
 
   function setRenderer(renderer, url = "") {
     if (renderer !== "off") {
-      style("overlay-filter", renderer === "viewport" ? "none" : "");
       style("lens", renderer === "backdrop" ? url : "");
     }
     if (activeRenderer === renderer) return;
@@ -130,7 +129,7 @@ export function liquidGlass(element, changes = {}) {
 
   function render() {
     frame = null;
-    const { mode, refraction, radius, bevel, curvature } = options;
+    const { mode, refraction } = options;
     const { clientWidth: width, clientHeight: height } = element;
     if (solid.matches || mode === "frost" || !refraction || !element.isConnected || !width || !height) {
       clearSvg();
@@ -140,8 +139,7 @@ export function liquidGlass(element, changes = {}) {
     }
 
     if (supportsBackdrop && (mode === "auto" || mode === "backdrop")) {
-      const key = [width, height, Math.min(radius, width / 2, height / 2), bevel, curvature].join("/");
-      if (key !== geometry?.key) geometry = { ...lensGeometry(width, height, options), width, height, key };
+      geometry = lensGeometry(width, height, options, geometry);
       svgLens ??= makeSvgLens(element);
       const renderedOptions = options;
       svgLens.render(geometry, options, (url) => {

@@ -1,4 +1,4 @@
-import { viewportGeometry } from "../optics.js";
+import { lensGeometry } from "../optics.js";
 import {
   appendRefraction, attrs, filterId, filterRoot, makeMapRequest, setDisplacement, svg,
 } from "./svg.js";
@@ -63,7 +63,7 @@ export function makeViewportLens(element, source, engine) {
   const document = source.ownerDocument;
   const view = document.defaultView;
   const { root, defs } = filterRoot(source);
-  const mapRequest = makeMapRequest(document, true, paint);
+  const mapRequest = makeMapRequest(document, paint);
   let geometry;
   let current;
   let lastPaint;
@@ -112,8 +112,7 @@ export function makeViewportLens(element, source, engine) {
     attrs(graph, viewport);
     attrs(flood, viewport);
     attrs(map, { ...lens, href: mapRequest.url });
-    // The strongest color channel must obey the same bound as a clear lens.
-    setDisplacement(displacements, 2 * geometry.strength / (1 + chroma), chroma);
+    setDisplacement(displacements, geometry.strength, chroma);
     if (webkit) graph.id = filterId();
     installFilter(source, owner, graph.id);
     if (webkit && newImage) {
@@ -133,12 +132,8 @@ export function makeViewportLens(element, source, engine) {
       const bounds = measure(element, source);
       if (bounds) {
         const { width, height } = bounds.lens;
-        const { radius, bevel, curvature, refraction } = options;
-        const key = [width, height, Math.min(radius, width / 2, height / 2), bevel, curvature, refraction].join("/");
-        if (key !== geometry?.key) {
-          geometry = { ...viewportGeometry(width, height, options), key };
-          mapRequest.requestMap(geometry);
-        }
+        geometry = lensGeometry(width, height, options, geometry);
+        mapRequest.requestMap(geometry);
       }
       paint(bounds);
     },

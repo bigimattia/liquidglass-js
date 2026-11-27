@@ -16,7 +16,7 @@ mise install
 mise run dev
 ```
 
-Open [the local playground](http://127.0.0.1:4173/demo/) to refract the contents of a live scroll pane. The renderer starts at **Automatic**. Switch between photo, grid, and typography artwork inside the pane and scroll it beneath the pinned glass. **Simple** shows one refraction slider. **Advanced** adds radius, bevel, curvature, and chroma.
+Open [the local playground](http://127.0.0.1:4173/demo/) to refract the contents of a live scroll pane. The renderer starts at **Automatic**. Switch between photo, grid, and typography artwork inside the pane and scroll it beneath the pinned glass. **Simple** shows one refraction slider. **Advanced** adds radius, bevel, curvature, chroma, blur, and tint opacity.
 
 In **Usage**, choose a renderer and a language to copy the corresponding layout and configuration. **Automatic** and **Viewport SVG** examples pass a `viewportSource`. Angular uses a template reference to the scroll pane.
 

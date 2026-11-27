@@ -1,5 +1,3 @@
-import { lensStrength } from "../optics.js";
-
 const namespace = "http://www.w3.org/2000/svg";
 const documentMaps = new WeakMap();
 let nextId = 0;
@@ -40,12 +38,12 @@ export function filterId() {
   return "liquid-glass-" + ++nextId;
 }
 
-export function getMap(document, geometry, viewport = false) {
+function getMap(document, geometry) {
   if (!documentMaps.has(document)) {
     documentMaps.set(document, { entries: new Map(), canvas: document.createElement("canvas") });
   }
   const { entries, canvas } = documentMaps.get(document);
-  const key = (viewport ? "viewport/" : "backdrop/") + geometry.key;
+  const { key } = geometry;
   let entry = entries.get(key);
   if (entry) {
     entries.delete(key);
@@ -61,12 +59,10 @@ export function getMap(document, geometry, viewport = false) {
   if (context) {
     const image = context.createImageData(columns, rows);
     const pixels = image.data;
-    const neutral = viewport ? 128 : 127.5;
-    const weight = viewport ? 127 : 127.5;
     for (let index = 0; index < columns * rows; index++) {
       const pixel = 4 * index;
-      pixels[pixel] = neutral + weight * offsets[2 * index];
-      pixels[pixel + 1] = neutral + weight * offsets[2 * index + 1];
+      pixels[pixel] = 128 + 127 * offsets[2 * index];
+      pixels[pixel + 1] = 128 + 127 * offsets[2 * index + 1];
       pixels[pixel + 3] = 255;
     }
     context.putImageData(image, 0, 0);
@@ -80,6 +76,9 @@ export function getMap(document, geometry, viewport = false) {
   }
   if (entries.size >= 32) entries.delete(entries.keys().next().value);
   entries.set(key, entry);
+  entry.ready.then((url) => {
+    if (!url && entries.get(key) === entry) entries.delete(key);
+  });
   return entry;
 }
 
@@ -109,13 +108,15 @@ export function appendRefraction(graph, chromatic) {
   return displacements;
 }
 
-export function setDisplacement(nodes, scale, chroma) {
+export function setDisplacement(nodes, strength, chroma) {
+  // Keep the strongest color channel within the same bound as a clear lens.
+  const scale = 2 * strength / (1 + chroma);
   for (const [index, node] of nodes.entries()) {
     attrs(node, { scale: scale * (nodes.length === 1 ? 1 : 1 + (index - 1) * chroma) });
   }
 }
 
-export function makeMapRequest(document, viewport, repaint) {
+export function makeMapRequest(document, repaint) {
   let requestedKey;
   let request = 0;
   const state = { url: null, key: null, failed: false, requestMap, cancel };
@@ -125,7 +126,7 @@ export function makeMapRequest(document, viewport, repaint) {
     requestedKey = geometry.key;
     state.failed = false;
     const ticket = ++request;
-    const map = getMap(document, geometry, viewport);
+    const map = getMap(document, geometry);
     if (map.url) {
       state.url = map.url;
       state.key = geometry.key;
@@ -149,7 +150,7 @@ export function makeMapRequest(document, viewport, repaint) {
 
 export function makeSvgLens(element) {
   const { root, defs } = filterRoot(element);
-  const mapRequest = makeMapRequest(element.ownerDocument, false, paint);
+  const mapRequest = makeMapRequest(element.ownerDocument, paint);
   let current;
   let graph;
   let map;
@@ -162,9 +163,9 @@ export function makeSvgLens(element) {
       apply("");
       return;
     }
-    if (!mapRequest.url) return;
+    if (!mapRequest.url || mapRequest.key !== geometry.key) return;
     const { width, height } = geometry;
-    const { refraction, chroma } = options;
+    const { chroma } = options;
     if (chromatic !== !!chroma) {
       chromatic = !!chroma;
       graph = svg(element.ownerDocument, "filter", {
@@ -179,7 +180,7 @@ export function makeSvgLens(element) {
       defs.replaceChildren(graph);
     }
     attrs(map, { href: mapRequest.url, width, height });
-    setDisplacement(displacements, 2 * lensStrength(refraction, chroma, width, height), chroma);
+    setDisplacement(displacements, geometry.strength, chroma);
     apply('url("#' + graph.id + '")');
   }
 

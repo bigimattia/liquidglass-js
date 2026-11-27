@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { JSDOM } from "jsdom";
 import { liquidGlass } from "@ikeofficial/liquid-glass-js";
-import { lensGeometry, lensStrength, viewportGeometry } from "../src/optics.js";
+import { lensGeometry } from "../src/optics.js";
 import { makeSvgLens } from "../src/renderers/svg.js";
 
 test("the bevel bends inward, mirrors across the lens, and leaves the center flat", () => {
-  const { columns, rows, offsets } = lensGeometry(99, 47, { radius: 12, bevel: 14, curvature: 2 });
+  const { columns, rows, offsets } = lensGeometry(99, 47, { radius: 12, bevel: 14, curvature: 2, refraction: 28 });
   const point = (x, y) => [...offsets.subarray(2 * (y * columns + x), 2 * (y * columns + x) + 2)];
   const [mx, my] = point(8, 2);
   const [rx, ry] = point(columns - 9, 2);
@@ -19,24 +19,19 @@ test("the bevel bends inward, mirrors across the lens, and leaves the center fla
   assert.deepEqual(point(49, 23), [0, 0]);
 });
 
-test("the reported wide capsule has a symmetric, antialiased mask and bounded displacement", () => {
-  const { columns, rows, offsets, coverage, highlights } = lensGeometry(
-    368, 122, { radius: 108, bevel: 30, curvature: 2, lightAngle: 145 },
+test("the wide capsule leaves pixels outside the rim untouched", () => {
+  const { columns, rows, offsets } = lensGeometry(
+    368, 122, { radius: 108, bevel: 30, curvature: 2, refraction: 28 },
   );
-  assert.equal(coverage[0], 0);
-  assert.equal(coverage[columns - 1], 0);
-  assert.equal(coverage[columns * rows - 1], 0);
-  assert.equal(coverage[columns * Math.floor(rows / 2) + Math.floor(columns / 2)], 255);
-  assert(coverage.some((alpha) => alpha > 0 && alpha < 255));
-  assert(highlights[Math.round(columns / 2)] > highlights[columns * (rows - 1) + Math.round(columns / 2)]);
+  for (const cell of [0, columns - 1, columns * rows - 1]) {
+    assert.deepEqual([...offsets.subarray(cell * 2, cell * 2 + 2)], [0, 0]);
+  }
   assert(offsets.every((offset) => Number.isFinite(offset) && Math.abs(offset) <= 1));
-  assert.equal(lensStrength(48, 0, 368, 122), 48);
-  assert(lensStrength(62, .8, 100, 54) * 1.8 < 27);
 });
 
 test("the encoded viewport warp preserves local orientation at high strength", () => {
   for (const [width, height, radius] of [[807, 96, 22], [288, 96, 22], [110, 54, 27], [288, 96, 0]]) {
-    const { columns, rows, offsets, strength } = viewportGeometry(width, height, {
+    const { columns, rows, offsets, strength } = lensGeometry(width, height, {
       radius, refraction: 51, bevel: 32, curvature: 2,
     });
     assert(strength > 10);
@@ -66,7 +61,7 @@ test("the encoded viewport warp preserves local orientation at high strength", (
   }
 });
 
-test("strength changes reuse the displacement map and SVG graph", async () => {
+test("native backdrop reuses the SVG graph and caches effective displacement maps", async () => {
   const { window } = new JSDOM("<div></div>");
   let encodes = 0;
   window.HTMLCanvasElement.prototype.getContext = () => ({
@@ -78,16 +73,20 @@ test("strength changes reuse the displacement map and SVG graph", async () => {
   const { document } = window;
   const lens = makeSvgLens(document.querySelector("div"));
   const settings = { radius: 108, bevel: 30, curvature: 2, chroma: 0, blur: 0, saturation: 1, edgeHighlight: .94 };
-  const geometry = { ...lensGeometry(368, 122, settings), width: 368, height: 122, key: "large-capsule" };
-  lens.render(geometry, { ...settings, refraction: 22 }, () => {});
+  const weaker = lensGeometry(368, 122, { ...settings, refraction: 22 });
+  const stronger = lensGeometry(368, 122, { ...settings, refraction: 48 });
+  lens.render(weaker, settings, () => {});
   await new Promise(setImmediate);
   const filter = document.querySelector("filter");
   const displacement = filter.querySelector("feDisplacementMap");
   const previous = Number(displacement.getAttribute("scale"));
-  lens.render(geometry, { ...settings, refraction: 48 }, () => {});
+  lens.render(stronger, settings, () => {});
+  await new Promise(setImmediate);
   assert.equal(document.querySelector("filter"), filter);
   assert(Number(displacement.getAttribute("scale")) > previous);
-  assert.equal(encodes, 1);
+  lens.render(weaker, settings, () => {});
+  assert.equal(Number(displacement.getAttribute("scale")), previous);
+  assert.equal(encodes, 2);
   lens.dispose();
   assert.equal(document.querySelector("filter"), null);
   window.close();

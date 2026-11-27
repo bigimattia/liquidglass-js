@@ -2,12 +2,12 @@ import { liquidGlass } from "../src/liquid-glass.js";
 import { bindCopy } from "./copy-code.js";
 import { mountControlShowcase } from "./native-controls.js";
 
-const viewportDefaults = { refraction: 28, radius: 22, bevel: 32, curvature: 2, chroma: 0 };
+const viewportDefaults = { refraction: 28, radius: 22, bevel: 32, curvature: 2, chroma: 0, blur: 2, tint: .08 };
 const byId = (id) => document.getElementById(id);
 const readSelection = (name) => document.querySelector(`input[name="${name}"]:checked`).value;
 
 function mountSliders(container, definitions, change) {
-  const controls = definitions.map(([key, label, min, max, step, suffix = ""]) => {
+  const controls = definitions.map(([key, label, min, max, step, unit = ""]) => {
     const id = container.id + "-" + key;
     const row = document.createElement("div");
     row.className = key === "refraction" ? "slider primary-setting" : "slider advanced-setting";
@@ -16,16 +16,17 @@ function mountSliders(container, definitions, change) {
     container.append(row);
     const input = row.querySelector("input");
     const output = row.querySelector("output");
+    const format = typeof unit === "function" ? unit : (value) => value + unit;
     input.addEventListener("input", () => {
-      output.value = input.value + suffix;
+      output.value = format(input.valueAsNumber);
       change(key, input.valueAsNumber);
     });
-    return { key, input, output, suffix };
+    return { key, input, output, format };
   });
   return (settings, disabled = false) => {
-    for (const { key, input, output, suffix } of controls) {
+    for (const { key, input, output, format } of controls) {
       input.value = settings[key];
-      output.value = input.value + suffix;
+      output.value = format(input.valueAsNumber);
       input.disabled = disabled;
     }
   };
@@ -47,6 +48,8 @@ const syncViewport = mountSliders(
     ["bevel", "Bevel", 2, 64, 1, "px"],
     ["curvature", "Curvature", .5, 5, .1],
     ["chroma", "Chroma", 0, .8, .02],
+    ["blur", "Blur", 0, 16, .5, "px"],
+    ["tint", "Opacity", 0, 1, .01, (value) => Math.round(value * 100) + "%"],
   ],
   (key, value) => {
     viewportValues[key] = value;
@@ -56,12 +59,12 @@ const syncViewport = mountSliders(
 
 function usageExample(language, mode) {
   const usesSource = mode === "auto" || mode === "viewport";
-  const { refraction, radius, bevel, curvature, chroma } = viewportValues;
+  const { refraction, radius, bevel, curvature, chroma, blur, tint } = viewportValues;
   const customOptics = Object.keys(viewportDefaults).some((key) =>
     key !== "refraction" && viewportValues[key] !== viewportDefaults[key]);
   const settings = playground.dataset.detail === "advanced" || customOptics
-    ? `refraction: ${refraction}, radius: ${radius}, bevel: ${bevel}, curvature: ${curvature}, chroma: ${chroma}`
-    : `refraction: ${refraction}`;
+    ? `refraction: ${refraction}, radius: ${radius}, bevel: ${bevel}, curvature: ${curvature}, chroma: ${chroma}, blur: ${blur}, tint: ${tint}`
+    : `refraction: ${refraction}, tint: ${tint}`;
   const options = `{ mode: "${mode}", ${usesSource ? 'viewportSource: "#glass-feed", ' : ""}${settings} }`;
   const stylesheet = 'import "@ikeofficial/liquid-glass-js/style.css";';
   const css = `.glass-shell { position: relative; isolation: isolate; }
@@ -155,7 +158,7 @@ ${indent(css, 2)}
 
 const viewportGlass = liquidGlass(viewportLens, {
   ...viewportValues, mode: viewportMode.value, viewportSource: viewportScene,
-  interactive: false, tint: .08, glow: .14,
+  interactive: false, glow: .14,
 });
 
 const rendererLabels = { backdrop: "Native backdrop", viewport: "Viewport SVG", frost: "Frosted glass", off: "Glass off" };
